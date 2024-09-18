@@ -1,5 +1,6 @@
 import { model, Schema } from "mongoose";
 
+//role based access [default: admin, superAdmin]
 const AdminSchema = new Schema(
   {
     name: {
@@ -15,7 +16,12 @@ const AdminSchema = new Schema(
     password:{
         type:String,
         required:true
-    }
+    },
+    role: {
+      type: String,
+      enum: ["admin", "superAdmin"],
+      default: "admin",
+    },
   },
   { timestamps: true }
 );
