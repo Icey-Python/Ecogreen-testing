@@ -1,9 +1,9 @@
-import { StatusCodes } from 'http-status-codes';
-import Admin from '../models/admin.model.js';
-import bcrypt from 'bcrypt';
-import { Logger } from 'borgen';
-import jwt from 'jsonwebtoken';
-import { Config } from '../lib/config.js';
+import { StatusCodes } from 'http-status-codes'
+import Admin from '../models/admin.model.js'
+import bcrypt from 'bcrypt'
+import { Logger } from 'borgen'
+import jwt from 'jsonwebtoken'
+import { Config } from '../lib/config.js'
 
 // @desc create new admin
 // @route POST /api/v1/admin/create
@@ -107,25 +107,47 @@ export const loginAdmin = async (req, res) => {
   }
 }
 
-
 // @desc Update admin credentials
 // @route PUT /api/v1/admin/update/:id
 export const updateAdminById = async (req, res) => {
-
   try {
-    const userId = res.params.id;
-    const { name, email, password } = req.body;
+    const userId = req.params.id
+    const { name, email, password } = req.body
     // Fetch the user to update
-    const admin = await Admin.findById(userId);
+    const admin = await Admin.findById(userId)
     if (!admin) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
-        status: "error",
-        message: "You are not allowed to perfom this action",
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
         data: null,
-      });
+      })
     }
-  }
-  catch (error) {
+    if(admin.role == "superAdmin"){
+      //check if the admin is superAdmin
+      const currentAdminUser = await Admin.findById(res.locals.userId);
+      if(currentAdminUser.role != "superAdmin"){
+        return res.status(StatusCodes.UNAUTHORIZED).json({
+          status: 'error',
+          message: 'You are not allowed to perfom this action',
+          data: null,
+        })
+      }
+    }
+
+    // Update the user
+    if(name) admin.name = name;
+    if(email) admin.email = email;
+    const updatedAdmin = await admin.save()
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Admin updated successfully',
+      data: {
+        name: updatedAdmin.name,
+        email: updatedAdmin.email,
+      },
+    })
+  } catch (error) {
     Logger.error({ message: error.message })
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
@@ -133,4 +155,4 @@ export const updateAdminById = async (req, res) => {
       data: null,
     })
   }
-} 
+}
