@@ -1,4 +1,4 @@
-import { model, Schema, Types } from "mongoose";
+import { model, Schema} from "mongoose";
 
 const UserSchema = new Schema(
   {
@@ -19,7 +19,15 @@ const UserSchema = new Schema(
     squads:[{
       type: Schema.Types.ObjectId,
       ref:"Squad"
-    }]
+    }],
+    balance:{
+      type:Number,
+      default:0
+    },
+    donations:{
+      type:Number,
+      default:0
+    }
   },
   { timestamps: true }
 );
