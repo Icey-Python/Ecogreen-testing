@@ -228,3 +228,25 @@ export const deleteUserById = async (req, res) => {
     });
   }
 };
+
+// @desc Get all users (Admin only)
+// @route GET /api/v1/users
+export const getAllUsers = async (req, res) => {
+  try {
+    // Check if the requesting user is an admin (this check is handled by adminAuth middleware)
+    const users = await User.find().select('-password'); // Exclude password
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Users fetched successfully",
+      data: users,
+    });
+  } catch (error) {
+    Logger.error({ message: error.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while fetching users",
+      data: null,
+    });
+  }
+};
