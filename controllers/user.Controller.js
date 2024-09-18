@@ -19,16 +19,27 @@ export const signUpUser = async (req, res) => {
     });
 
     let data = await newUser.save();
-
+    // Create jwt
+    let token = jwt.sign(
+      {
+        id: newUser.id,
+      },
+      Config.JWT_SECRET,
+      {
+        expiresIn: "7d", // Set expiration to 7 days
+      }
+    );
     res.status(StatusCodes.OK).json({
       status: "success",
       message: "User sign up successful",
       data: {
         name: data.name,
         email: data.email,
-        id: data._id,
+        token
       },
     });
+
+    
   } catch (error) {
     Logger.error({ message: error.message });
 

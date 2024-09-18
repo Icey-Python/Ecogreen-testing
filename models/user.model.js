@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 
 const UserSchema = new Schema(
   {
@@ -15,7 +15,11 @@ const UserSchema = new Schema(
     password:{
         type:String,
         required:true
-    }
+    },
+    squads:[{
+      type: Schema.Types.ObjectId,
+      ref:"Squad"
+    }]
   },
   { timestamps: true }
 );
