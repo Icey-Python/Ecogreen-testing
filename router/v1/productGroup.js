@@ -1,6 +1,6 @@
 import { Router } from "express";
 import Product from "../../models/product.model.js";
-import { createProduct ,getProduct,getAllProducts, updateProduct, deleteProduct} from "../../controllers/product.Controller.js";
+import { createProduct ,getProduct,getAllProducts, updateProduct, deleteProduct,purchaseProduct} from "../../controllers/product.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 
 
@@ -12,5 +12,6 @@ router.get("/one/:id",userAuth, getProduct );
 router.get("/all",userAuth, getAllProducts );
 router.put("/update/:id",userAuth, updateProduct)
 router.delete("/delete/:id",userAuth, deleteProduct)
+router.post("/purchase/:id",userAuth, purchaseProduct)
 
 export default router;

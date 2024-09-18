@@ -26,6 +26,10 @@ const ProductSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    quantity :{
+        type: Number,
+        required:true
+    }
   },
   { timestamps: true }
 );
