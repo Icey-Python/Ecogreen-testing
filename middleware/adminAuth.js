@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken"
 import { StatusCodes } from "http-status-codes";
 import { Config } from "../lib/config.js";
 import Admin from "../models/admin.model.js";
+import User from "../models/user.model.js";
 
 export const adminAuth = async (req,res,next) => {
     try {
@@ -40,3 +41,5 @@ export const adminAuth = async (req,res,next) => {
           });
     }
 }
+
+
