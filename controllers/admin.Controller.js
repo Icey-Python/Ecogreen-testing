@@ -33,7 +33,6 @@ export const createAdmin = async (req, res) => {
       data: {
         name,
         email,
-        password,
         role,
       },
     })
@@ -47,9 +46,13 @@ export const createAdmin = async (req, res) => {
   }
 }
 // @desc Login admin
-// @route POST /api/v1/user/login
+// @route POST /api/v1/admin/login
 export const loginAdmin = async (req, res) => {
   try {
+    /**@desc {
+      email: string
+      password: string
+    }**/
     const { email, password } = req.body
 
     // Check if the user exists
@@ -103,3 +106,31 @@ export const loginAdmin = async (req, res) => {
     })
   }
 }
+
+
+// @desc Update admin credentials
+// @route PUT /api/v1/admin/update/:id
+export const updateAdminById = async (req, res) => {
+
+  try {
+    const userId = res.params.id;
+    const { name, email, password } = req.body;
+    // Fetch the user to update
+    const admin = await Admin.findById(userId);
+    if (!admin) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "You are not allowed to perfom this action",
+        data: null,
+      });
+    }
+  }
+  catch (error) {
+    Logger.error({ message: error.message })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while updating the admin',
+      data: null,
+    })
+  }
+} 
