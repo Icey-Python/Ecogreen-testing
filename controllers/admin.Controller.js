@@ -5,6 +5,8 @@ import bcrypt from 'bcrypt'
 import { Logger } from 'borgen'
 import jwt from 'jsonwebtoken'
 import { Config } from '../lib/config.js'
+import Squad from '../models/squad.model.js'
+import Product from '../models/product.model.js'
 
 // @desc create new admin
 // @route POST /api/v1/admin/create
@@ -16,7 +18,7 @@ export const createAdmin = async (req, res) => {
       password: string
       role: string
     }**/
-    //check if admin is superAdmin 
+    //check if admin is superAdmin
     const currentAdminUser = await Admin.findById(res.locals.userId)
     if (currentAdminUser.role != 'superAdmin') {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -239,20 +241,24 @@ export const deleteAdminById = async (req, res) => {
       })
     }
     if (admin.role == 'superAdmin' && currentAdminUser.role != 'superAdmin') {
-        return res.status(StatusCodes.UNAUTHORIZED).json({
-          status: 'error',
-          message: 'You are not allowed to perfom this action',
-          data: null,
-        })
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
+        data: null,
+      })
     }
 
     // superadmin delete all admin
-    if (admin.role != 'superAdmin' && userId != res.locals.userId && currentAdminUser.role != 'superAdmin') {
-        return res.status(StatusCodes.UNAUTHORIZED).json({
-          status: 'error',
-          message: 'You are not allowed to perfom this action',
-          data: null,
-        })
+    if (
+      admin.role != 'superAdmin' &&
+      userId != res.locals.userId &&
+      currentAdminUser.role != 'superAdmin'
+    ) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
+        data: null,
+      })
     }
 
     // Delete the user
@@ -292,7 +298,7 @@ export const getAllAdmins = async (req, res) => {
   }
 }
 
-// @desc Get all users 
+// @desc Get all users
 // @route GET /api/v1/admin/users
 export const getAllUsers = async (req, res) => {
   try {
@@ -307,6 +313,173 @@ export const getAllUsers = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while fetching users',
+      data: null,
+    })
+  }
+}
+
+// @desc Delete squads based on Id
+// @route /api/v1/admin/delete/squad/:id
+export const deleteSquadById = async (req, res) => {
+  try {
+    const squadId = req.params.id
+    const user = await Admin.findById(res.locals.userId)
+
+    const squad = await Squad.findById(squadId)
+    if (!squad || !user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perform this action',
+        data: null,
+      })
+    }
+
+    if (user.role != 'superAdmin') {
+      console.log(user.role)
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perform this action',
+        data: null,
+      })
+    }
+    // Remove the squad from all users' members field
+    await User.updateMany(
+      { _id: { $in: squad.members } },
+      { $pull: { squads: squadId } },
+    )
+
+    // Remove the squad from the members field in the Squad document
+    await Squad.findByIdAndUpdate(
+      squadId,
+      { $pull: { members: { $in: squad.members } } },
+      { new: true },
+    )
+    await Squad.findByIdAndDelete(squadId)
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Squad deleted successfully',
+      data: {
+        name: squad.name,
+        id: squad.id,
+      },
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to update the squad details',
+      data: null,
+    })
+  }
+}
+
+// @desc Delete product
+// @route /api/v1/admin/delete/product/:id
+export const deleteProductById = async (req, res) => {
+  try {
+    const productId = req.params.id
+    const user = await Admin.findById(res.locals.userId)
+    // Check if the product ID is provided
+    if (!productId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid product id',
+        data: null,
+      })
+    }
+
+    if (!user || user.role != 'superAdmin') {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not alowed to perfom this action',
+        data: null,
+      })
+    }
+
+    const deletedProduct = await Product.findByIdAndDelete(productId)
+
+    // Send success response
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Product deleted successfully',
+      data: {
+        id: deletedProduct._id,
+        name: deletedProduct.name,
+      },
+    })
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred trying to delete the  product',
+      data: null,
+    })
+  }
+}
+
+//@ desc deactivate product
+//@ role PUT /api/v1/deactivate/product/:id
+export const deactivateProductById = async (req, res) => {
+  try {
+    let productId = req.params.id 
+
+    const updatedProduct = await Product.findByIdAndUpdate(productId, {
+      isActive: false,  
+    })
+
+    if (!updatedProduct) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: 'error',
+        message: 'Product not found',
+        data: null,
+      })
+    }
+
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Product updated successfully',
+      data: {
+        "name": updatedProduct.name
+      },
+    })
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred trying to delete the  product',
+      data: null,
+    })
+  }
+}
+
+//@ desc activate product
+//@ role PUT /api/v1/activate/product/:id
+export const activateProductById = async (req, res) => {
+  try {
+    let productId = req.params.id 
+
+    const updatedProduct = await Product.findByIdAndUpdate(productId, {
+      isActive: true,  
+    })
+
+    if (!updatedProduct) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: 'error',
+        message: 'Product not found',
+        data: null,
+      })
+    }
+
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Product updated successfully',
+      data: {
+        "name": updatedProduct.name
+      },
+    })
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred trying to delete the  product',
       data: null,
     })
   }
