@@ -6,6 +6,7 @@ import {
   deleteUserById,
   updateUserPassword,
   getAllUsers,
+  getAllUsersDonations,
 } from "../../controllers/user.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
@@ -18,5 +19,6 @@ router.put("/:id", userAuth, updateUserById);
 router.put("/password/:id", userAuth, updateUserPassword);
 router.delete("delete/:id", deleteUserById);
 router.get("/users",adminAuth, getAllUsers)
+router.get("/donations",userAuth, getAllUsersDonations)
 
 export default router;
