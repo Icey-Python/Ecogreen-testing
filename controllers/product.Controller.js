@@ -8,13 +8,14 @@ import Product from "../models/product.model.js";
 export const createProduct = async (req, res) => {
   try {
     const userId = res.locals.userId;
-    const { name, description, image, price, } = req.body;
+    const { name, description, image, price, quantity } = req.body;
 
     const product = await Product.create({
       name,
       description,
       price,
       seller: userId,
+      quantity,
     });
 
     await product.save();
@@ -26,6 +27,7 @@ export const createProduct = async (req, res) => {
         name,
         description,
         price,
+        quantity,
       },
     });
   } catch (error) {
@@ -179,3 +181,62 @@ export const deleteProduct = async (req, res) => {
   };
   
   
+  //@desc Purchase product 
+  //@route POST  /api/v1/product/purchase
+
+export const purchaseProduct = async (req, res) => {
+  try {
+
+    const productId = req.params.id
+    const userId = res.locals.userId; // Assuming userId is passed via auth middleware
+    const { name, quantityPurchased } = req.body; // Expecting productId and quantity in the request body
+
+    // Validate the request
+    if (!productId || !quantityPurchased ) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Please provide a valid product ID and quantity.",
+      });
+    }
+
+    // Find the product
+    const purchasedProduct = await Product.findById(productId);
+    if (!productId) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message: "Product not found.",
+      });
+    }
+
+     // Check if enough stock is available
+     if (purchasedProduct.quantity < quantityPurchased) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          status: "error",
+          message: `Insufficient stock. Only ${purchasedProduct.quantity} items are available.`,
+        });
+      }
+
+    // Deduct the purchased quantity from stock
+    purchasedProduct.quantity -= quantityPurchased;
+    await purchasedProduct.save();
+
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Product purchased successfully.",
+      data: {
+        id: purchasedProduct._id,
+        name: purchasedProduct.name,
+        quantityPurchased,
+        remainingStock: purchasedProduct.quantity,
+        
+      },
+    });
+  } catch (error) {
+    Logger.error({ message: error.message });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while purchasing the product.",
+    });
+  }
+};
