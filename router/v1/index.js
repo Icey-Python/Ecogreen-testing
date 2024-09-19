@@ -7,6 +7,7 @@ import productGroup from './productGroup.js'
 import orderGroup from './orderGroup.js'
 import reportGroup from './reportGroup.js'
 import leaderboardGroup from './leaderboardGroup.js'
+import chatGroup from './chatGroup.js'
 
 const router = Router();
 
@@ -19,4 +20,5 @@ router.use("/product", productGroup)
 router.use("/order", orderGroup)
 router.use("/report", reportGroup)
 router.use("/leaderboard", leaderboardGroup)
+router.use("/chat", chatGroup)
 export default router;
