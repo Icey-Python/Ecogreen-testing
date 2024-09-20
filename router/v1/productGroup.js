@@ -1,6 +1,13 @@
 import { Router } from "express";
 import Product from "../../models/product.model.js";
-import { createProduct ,getProduct,getAllProducts, updateProduct, deleteProduct,purchaseProduct} from "../../controllers/product.Controller.js";
+import {
+    createProduct,
+    getProduct,
+    updateProduct,
+    deleteProduct,
+    purchaseProduct,
+    getAllProducts
+} from "../../controllers/product.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { userAdminAuth } from "../../middleware/userAdminAuth.js";
 
