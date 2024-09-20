@@ -3,6 +3,7 @@ import User from '../models/user.model.js'
 import { Logger } from 'borgen'
 import Post from '../models/post.model.js'
 import Squad from '../models/squad.model.js'
+import Admin from '../models/admin.model.js'
 //@ desc Create post
 //@ route POST /api/v1/post/create
 export const createPost = async (req, res) => {
@@ -179,8 +180,10 @@ export const deletePost = async (req, res) => {
         data: null,
       })
     }
+
     const squad = await Squad.findById(post.squad)
-    if(!squad.moderators.includes(userId) || userId != String(post.creator)) {
+
+    if(!squad.moderators.includes(userId) || userId != String(post.creator || !Admin.findById(userId))) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -239,7 +242,7 @@ export const getPost = async (req, res) => {
 }
 
 //@ desc like post
-//@ route POST /api/v1/post/like/:id
+//@ route PUT /api/v1/post/like/:id
 export const likePost = async (req, res) => {
   try {
     if(!res.locals.userId) {
@@ -290,7 +293,7 @@ export const likePost = async (req, res) => {
 }
 
 //@ desc comment post
-//@ route POST /api/v1/post/comment/:id
+//@ route PUT /api/v1/post/comment/:id
 export const commentPost = async (req, res) => {
   try {
     if(!res.locals.userId) {
@@ -331,9 +334,58 @@ export const commentPost = async (req, res) => {
     })
   }
 }
+//@ desc Delete Comment 
+//@ route DELETE /api/v1/post/comment/delete/:id
+export const deleteComment = async (req, res) => {
+  try {
+    if(!res.locals.userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login and try again',
+        data: null,
+      })
+    }
+    const commentId = req.params.id
+    if (!commentId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Please provide comment id',
+        data: null,
+      })
+    }
+    const comment = await Comment.findById(commentId)
+    if (!comment) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid comment Id',
+        data: null,
+      })
+    }
+    if(!comment.creator.equals(res.locals.userId) || !Admin.findById(res.locals.userId)) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perform this action',
+        data: null,
+      })
+    }
+    await comment.findByIdAndDelete(commentId)
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Comment deleted successfully',
+      data: null,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occured while trying to delete your comment',
+      data: null,
+    })
+  }
+}
 
 //@ desc Get all comments
-//@ route GET /api/v1/post/comment/:id
+//@ route GET /api/v1/post/comment/all
 export const getAllComments = async (req, res) => {
   try {
     if(!res.locals.userId) {

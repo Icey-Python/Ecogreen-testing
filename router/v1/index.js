@@ -8,7 +8,7 @@ import orderGroup from './orderGroup.js'
 import reportGroup from './reportGroup.js'
 import leaderboardGroup from './leaderboardGroup.js'
 import chatGroup from './chatGroup.js'
-
+import postGroup from './postGroup.js' 
 const router = Router();
 
 // Routes
@@ -21,4 +21,5 @@ router.use("/order", orderGroup)
 router.use("/report", reportGroup)
 router.use("/leaderboard", leaderboardGroup)
 router.use("/chat", chatGroup)
+router.use('/post', postGroup)
 export default router;
