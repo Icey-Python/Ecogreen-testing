@@ -14,6 +14,10 @@ const squadSchema = new Schema(
         type: Schema.Types.ObjectId,
         ref: 'User', // Each squad has members who are users
       }],
+    moderators: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User', // Each squad has moderators who are users
+    }],
     description: {
         type: String,
       },
