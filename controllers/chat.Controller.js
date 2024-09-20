@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
-import Chat from "../models/chat.model";
-import Message from "../models/message.model";
+import Chat from "../models/chat.model.js";
+import Message from "../models/message.model.js";
 import { Types } from "mongoose";
 
 // @desc Send messages
