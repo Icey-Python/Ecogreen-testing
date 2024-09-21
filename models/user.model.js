@@ -50,12 +50,14 @@ const UserSchema = new Schema(
         ref: "Product",
       },
     ],
-    resetPasswordToken: {
-       type: String 
+    //token:string, expires: timestamp -> default time 5 mins  
+    resetDetails: {
+      token: String,
+      expires:{
+        type: Date,
+        default: Date.now() + 3600000 // 5 minutes from current time
       },
-    resetPasswordExpires: {
-       type: Date
-      },
+    }
   },
   { timestamps: true }
 );
