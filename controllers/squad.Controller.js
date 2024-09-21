@@ -4,7 +4,7 @@ import { Logger } from 'borgen' // Assuming you have a logger
 import User from '../models/user.model.js' // Import User model if needed for population
 import { Types, ObjectId } from 'mongoose'
 import { isValidObjectId } from 'mongoose'
-
+import Moderator from '../models/moderator.model.js'
 // @desc Create new squad
 // @route POST /api/v1/squad/create
 export const createSquad = async (req, res) => {
@@ -15,9 +15,10 @@ export const createSquad = async (req, res) => {
       name,
       description,
       members -> optional
+      moderators -> optional []
      }
      */
-    const { name, description, members } = req.body
+    const { name, description, members,moderators} = req.body
     const creatorId = res.locals.userId
     const user = await User.findById(creatorId)
 
@@ -28,14 +29,24 @@ export const createSquad = async (req, res) => {
         data: null,
       })
     }
-    // Create the squad with the creator as the first member
+    // Create the squad with the creator as the first member and moderator
     let newSquad = new Squad({
       name,
       description,
       members: members ? [creatorId, ...members] : [creatorId],
       admin: user._id,
+      moderators: moderators ? [creatorId, ...moderators] : [creatorId],
     })
-
+    if(moderators){ 
+     moderators.forEach(async (moderator) => {
+      let newModerator = new Moderator({
+        moderatorId: new Types.ObjectId(moderator),
+        squadId: newSquad._id,
+        role: 'mod-members',
+      })
+      await newModerator.save()
+    })
+    }
     user.squads.push(newSquad._id)
     await user.save()
 
@@ -555,6 +566,90 @@ export const removeMember = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while trying to remove the member',
+      data: null,
+    })
+  }
+}
+
+//MODERATORS 
+
+//@ desc create moderator of squad
+//@ route POST api/v1/squad/moderator/create
+export const createModerator = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const { squadId, role, moderatorId } = req.body
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+    if (!role) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Role is required',
+        data: null,
+      })
+    }
+    if (!moderatorId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator Id is required',
+        data: null,
+      })
+    }
+    const moderator = await User.findById(moderatorId)
+    if (!moderator) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid moderator Id',
+        data: null,
+      })
+    }
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+
+    if (userId != squad.admin) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
+        data: null,
+      })
+    }
+    if (squad.moderators.includes(moderatorId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator already exists in the squad',
+        data: null,
+      })
+    }
+    squad.moderators.push(new Types.ObjectId(moderatorId))
+    await squad.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Moderator created successfully',
+      data: null,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to create moderator',
       data: null,
     })
   }

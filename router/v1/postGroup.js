@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { userAuth } from "../../middleware/userAuth";
-import { commentPost, createPost, deleteComment, deletePost, getAllComments, getAllPosts, getPost, likePost, savePost, updatePost } from "../../controllers/post.Controller";
+import { userAuth } from "../../middleware/userAuth.js";
+import { commentPost, createPost, deleteComment, deletePost, getAllComments, getAllPosts, getPost, likePost, savePost, updatePost } from "../../controllers/post.Controller.js";
 
 
 const router = Router();
