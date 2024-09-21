@@ -233,7 +233,6 @@ export const updateSquad = async (req, res) => {
     }
 
     if (userId != String(squad.admin)) {
-      console.log(userId, '|', squad.members)
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -649,7 +648,11 @@ export const addModeratorToSquad = async (req, res) => {
       })
     }
     if(!squad.members.includes(moderatorId)){
-      squad.members.push(new Types.ObjectId(moderatorId))
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator must be part of the squad',
+        data: null,
+      })
     }
     squad.moderators.push(new Types.ObjectId(moderatorId))
     //create new Moderator 
@@ -705,7 +708,7 @@ export const updateModeratorRole = async (req, res) => {
     if (!role) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
-        message: 'Role is required',
+        message: 'Role is required [mod-members,mod-post]',
         data: null,
       })
     }
@@ -737,6 +740,14 @@ export const updateModeratorRole = async (req, res) => {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Moderator does not exist in the squad',
+        data: null,
+      })
+    }
+    const moderatorRoles = ['mod-members', 'mod-post']
+    if(role && !moderatorRoles.includes(role)){
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid role [mod-members,mod-post]',
         data: null,
       })
     }
