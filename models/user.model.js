@@ -50,12 +50,16 @@ const UserSchema = new Schema(
       quantity: { type: Number, required: true },
       },
     ],
-    resetPasswordToken: {
-       type: String 
-      },
-    resetPasswordExpires: {
-       type: Date
-      },
+    //token:string, expires: timestamp -> default time 5 mins  
+    resetDetails: {
+      token: String,
+      expires: Date,
+    },
+    //2FA 
+    authDetails: {
+      token: String,
+      expires: Date,
+    },
   },
   { timestamps: true }
 );
