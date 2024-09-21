@@ -340,11 +340,11 @@ export const approveConnection = async (req, res) => {
     }
 
     // Find the connection request
-    const connectionRequest = approvingUser.connectionRequests.find(
+    const connectionRequestIndex = approvingUser.connectionRequests.findIndex(
       (req) => req.from.toString() === requestingUserId && req.status === "pending"
     );
 
-    if (!connectionRequest) {
+    if (!connectionRequestIndex === -1) {
       return res.status(StatusCodes.NOT_FOUND).json({
         status: "error",
         message: "Connection request not found.",
@@ -353,7 +353,10 @@ export const approveConnection = async (req, res) => {
 
     // Approve the request: Add each user to the other's connections array
     approvingUser.connections.push(requestingUserId);
-    connectionRequest.status = "approved";
+    approvingUser.connectionRequests[connectionRequestIndex].status = "approved";
+
+    // Remove the connection request from the approving user's connectionRequests array
+    approvingUser.connectionRequests.splice(connectionRequestIndex, 1);
 
     // Update the requesting user's connections
     const requestingUser = await User.findById(requestingUserId);

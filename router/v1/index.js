@@ -9,7 +9,10 @@ import reportGroup from './reportGroup.js'
 import leaderboardGroup from './leaderboardGroup.js'
 import chatGroup from './chatGroup.js'
 import donationGroup from './donationGroup.js'
-import postGroup from './postGroup.js' 
+import postGroup from './postGroup.js'
+import cartGroup from  './cartGroup.js'
+
+
 const router = Router();
 
 // Routes
@@ -24,5 +27,9 @@ router.use("/leaderboard", leaderboardGroup)
 router.use("/chat", chatGroup)
 router.use("/donations", donationGroup)
 router.use('/post', postGroup)
+router.use("/cart",cartGroup)
+
+
+
 
 export default router;
