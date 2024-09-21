@@ -108,6 +108,7 @@ export const requestToJoinSquad = async (req, res) => {
       })
     }
 
+
     squad.requestedMembers.push(user._id)
     await squad.save()
 
@@ -226,6 +227,7 @@ export const updateSquad = async (req, res) => {
         data: null,
       })
     }
+
     if (userId != String(squad.admin)) {
       console.log(userId, '|', squad.members)
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -271,7 +273,6 @@ export const deleteSquad = async (req, res) => {
     }
 
     if (userId != String(squad.admin)) {
-      console.log(userId, '|', squad.members)
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -329,7 +330,7 @@ export const addMember = async (req, res) => {
     if (!requestedMemberId) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
-        message: 'User Id is required',
+        message: 'requestedMemberId is required',
         data: null,
       })
     }
@@ -357,8 +358,11 @@ export const addMember = async (req, res) => {
         data: null,
       })
     }
-
-    if (userId != squad.admin) {
+    const moderator = await Moderator.findOne({
+      moderatorId: userId,
+      squadId: squadId,
+    })
+    if (userId != squad.admin || moderator.role != 'mod-members' || !squad.moderators.includes(userId)) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perfom this action',
@@ -535,7 +539,8 @@ export const removeMember = async (req, res) => {
       })
     }
 
-    if (userId != squad.admin) {
+    const moderator = await Moderator.find({squadId: squadId, moderatorId: userId})
+    if (userId != squad.admin|| !squad.moderators.includes(userId) || moderator.role != "mod-members"){ 
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -574,9 +579,9 @@ export const removeMember = async (req, res) => {
 
 //MODERATORS 
 
-//@ desc create moderator of squad
+//@ desc add moderator of squad
 //@ route POST api/v1/squad/moderator/create
-export const createModerator = async (req, res) => {
+export const addModeratorToSquad = async (req, res) => {
   try {
     const userId = res.locals.userId
     const { squadId, role, moderatorId } = req.body
@@ -639,7 +644,17 @@ export const createModerator = async (req, res) => {
         data: null,
       })
     }
+    if(!squad.members.includes(moderatorId)){
+      squad.members.push(new Types.ObjectId(moderatorId))
+    }
     squad.moderators.push(new Types.ObjectId(moderatorId))
+    //create new Moderator 
+    const newModerator = new Moderator({
+      moderatorId: new Types.ObjectId(moderatorId),
+      squadId: new Types.ObjectId(squadId),
+      role: role,
+    })
+    await newModerator.save()
     await squad.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -651,6 +666,165 @@ export const createModerator = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while trying to create moderator',
+      data: null,
+    })
+  }
+}
+
+//@ desc Update Moderator role 
+//@ route PUT api/v1/squad/moderator/update
+export const updateModeratorRole = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const { squadId, moderatorId, role } = req.body
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+    if (!moderatorId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator Id is required',
+        data: null,
+      })
+    }
+    if (!role) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Role is required',
+        data: null,
+      })
+    }
+    const moderator = await Moderator.findOne({moderatorId:moderatorId, squadId:squadId})
+    if (!moderator) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid moderator Id',
+        data: null,
+      })
+    }
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+
+    if (userId != squad.admin) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
+        data: null,
+      })
+    }
+    if (!squad.moderators.includes(moderatorId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator does not exist in the squad',
+        data: null,
+      })
+    }
+
+    moderator.role = role
+    await moderator.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Moderator role updated successfully',
+      data: null,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to update moderator role',
+      data: null,
+    })
+  }
+}
+
+//@ desc Demote moderator
+//@ route PUT api/v1/squad/moderator/delete
+export const deleteModerator = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const { squadId, moderatorId } = req.body
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+    if (!moderatorId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator Id is required',
+        data: null,
+      })
+    }
+    const moderator = await Moderator.findOne({moderatorId:moderatorId, squadId:squadId})
+    if (!moderator) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid moderator Id',
+        data: null,
+      })
+    }
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+
+    if (userId != squad.admin) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
+        data: null,
+      })
+    }
+    if (!squad.moderators.includes(moderatorId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Moderator does not exist in the squad',
+        data: null,
+      })
+    }
+    squad.moderators = squad.moderators.filter((moderator) => moderator != moderatorId);
+    await moderator.deleteOne()
+    await squad.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Moderator deleted successfully',
+      data: null,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to delete moderator',
       data: null,
     })
   }
