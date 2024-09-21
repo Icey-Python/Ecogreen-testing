@@ -46,8 +46,8 @@ const UserSchema = new Schema(
     ],
     cart: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Product",
+        product: { type: Schema.Types.ObjectId, ref: 'Product' },
+      quantity: { type: Number, required: true },
       },
     ],
     //token:string, expires: timestamp -> default time 5 mins  
