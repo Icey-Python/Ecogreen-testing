@@ -14,7 +14,7 @@ const UserSchema = new Schema(
     },
     password:{
         type:String,
-        required:true
+        required:true,
     },
     squads:[{
       type: Schema.Types.ObjectId,
@@ -31,7 +31,31 @@ const UserSchema = new Schema(
     donations:{
       type:Number,
       default:0
-    }
+    },
+    connections:[
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    connectionRequests: [
+      {
+        from: { type: Schema.Types.ObjectId, ref: "User" },
+        status: { type: String, enum: ["pending", "approved"], default: "pending" },
+      },
+    ],
+    cart: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
+    resetPasswordToken: {
+       type: String 
+      },
+    resetPasswordExpires: {
+       type: Date
+      },
   },
   { timestamps: true }
 );
