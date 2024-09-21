@@ -8,6 +8,10 @@ import {
   getAllUsers,
   requestConnection,
   approveConnection,
+  forgotPasswordOtp,
+  sendOtp,
+  verifyOtp,
+  resetPassword,
 } from "../../controllers/user.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
@@ -22,5 +26,8 @@ router.delete("delete/:id", deleteUserById);
 router.get("/users", adminAuth, getAllUsers);
 router.post("/connect/request/:recipientUserId", userAuth, requestConnection);
 router.put("/connect/approve/:requestingUserId", userAuth, approveConnection);
-
+router.put("/reset/password/otp", forgotPasswordOtp);
+router.put("/reset/password/new", resetPassword);
+router.post("/otp", sendOtp);//2FA
+router.post("/otp/verify", verifyOtp);//2FA
 export default router;

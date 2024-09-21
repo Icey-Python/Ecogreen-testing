@@ -464,8 +464,8 @@ export const savePost = async (req, res) => {
     }
 
     if(post.saves.includes(new Types.ObjectId(userId))) {
-      post.saves.pull(new Types.ObjectId(userId))
-      user.saves.pull(new Types.ObjectId(postId))
+      post.saves = post.saves.filter((id)=>id.toString() !== userId.toString())
+      user.saves = user.saves.filter((id)=>id.toString() !== postId.toString())
       await user.save()
       await post.save()
 
