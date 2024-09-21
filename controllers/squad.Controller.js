@@ -74,7 +74,7 @@ export const createSquad = async (req, res) => {
   }
 }
 
-// @desc  Join Squad
+// @desc  Request Join Squad
 // @route PUT /api/v1/squad/join/:id
 export const requestToJoinSquad = async (req, res) => {
   try {
@@ -98,7 +98,7 @@ export const requestToJoinSquad = async (req, res) => {
         data: null,
       })
     }
-    let members = squad.members
+    const members = squad.members
     //check if member already is in the squad
     if (members.includes(userId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -441,7 +441,8 @@ export const approveMember = async (req, res) => {
         data: null,
       })
     }
-    if (userId != squad.admin) {
+    const moderator = await Moderator.find({squadId: squadId, moderatorId: userId})
+    if (userId != squad.admin || !squad.moderators.includes(userId) || moderator.role != "mod-members"){
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
