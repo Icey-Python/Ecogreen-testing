@@ -20,6 +20,10 @@ const UserSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref:"Squad"
     }],
+    saves:[{
+      type: Schema.Types.ObjectId,
+      ref:"Post"
+    }],
     balance:{
       type:Number,
       default:0
