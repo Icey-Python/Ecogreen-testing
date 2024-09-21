@@ -39,6 +39,10 @@ export const createSquad = async (req, res) => {
     })
     if(moderators){ 
      moderators.forEach(async (moderator) => {
+      newSquad.members.push(new Types.ObjectId(moderator))
+      const moderatorInfo = await User.findById(moderator)
+      moderatorInfo.squads.push(newSquad._id)
+      await moderatorInfo.save()
       let newModerator = new Moderator({
         moderatorId: new Types.ObjectId(moderator),
         squadId: newSquad._id,
