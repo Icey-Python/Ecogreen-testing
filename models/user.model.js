@@ -53,11 +53,13 @@ const UserSchema = new Schema(
     //token:string, expires: timestamp -> default time 5 mins  
     resetDetails: {
       token: String,
-      expires:{
-        type: Date,
-        default: Date.now() + 3600000 // 5 minutes from current time
-      },
-    }
+      expires: Date,
+    },
+    //2FA 
+    authDetails: {
+      token: String,
+      expires: Date,
+    },
   },
   { timestamps: true }
 );
