@@ -4,6 +4,7 @@ import { Logger } from "borgen";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Config } from "../lib/config.js";
+import mongoose from 'mongoose';
 
 // @route POST /api/v1/user/signup
 // @desc Register user
@@ -256,6 +257,121 @@ export const getAllUsers = async (req, res) => {
       status: "error",
       message: "An error occurred while fetching users",
       data: null,
+    });
+  }
+};
+
+
+// @desc Request connection to another user
+// @route POST /api/v1/user/connect/request/:recipientUserId
+export const requestConnection = async (req, res) => {
+  try {
+    const requestingUserId = res.locals.userId; 
+    const recipientUserId  = req.params.recipientUserId; 
+   
+
+    
+  
+    // Check if recipient user exists
+    const recipientUser = await User.findById(recipientUserId);
+    if (!recipientUser) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "User not found.",
+      });
+    }
+
+    // Check if the request already exists or if they are already connected
+    const existingRequest = recipientUser.connectionRequests.find(
+      (req) => req.from.toString() === requestingUserId
+    );
+    const alreadyConnected = recipientUser.connections.includes(requestingUserId);
+
+    if (existingRequest) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Connection request already sent.",
+      });
+    }
+
+    if (alreadyConnected) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "You are already connected with this user.",
+      });
+    }
+
+    // Add the connection request to the recipient user's connectionRequests array
+    recipientUser.connectionRequests.push({
+      from: requestingUserId,
+      status: "pending",
+    });
+
+    await recipientUser.save();
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Connection request sent successfully.",
+    });
+  } catch (error) {
+    Logger.error({ message: error.message, stack: error.stack }); // Log the actual error
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while sending the connection request.",
+    });
+  }
+};
+
+
+// @desc Approve connection request from another user
+// @route POST /api/v1/user/connect/approve/:requestingUserid
+export const approveConnection = async (req, res) => {
+  try {
+    const approvingUserId = res.locals.userId; 
+    const requestingUserId = req.params.requestingUserId; 
+
+    // Find the approving user
+    const approvingUser = await User.findById(approvingUserId);
+    if (!approvingUser) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message: "User not found.",
+      });
+    }
+
+    // Find the connection request
+    const connectionRequest = approvingUser.connectionRequests.find(
+      (req) => req.from.toString() === requestingUserId && req.status === "pending"
+    );
+
+    if (!connectionRequest) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message: "Connection request not found.",
+      });
+    }
+
+    // Approve the request: Add each user to the other's connections array
+    approvingUser.connections.push(requestingUserId);
+    connectionRequest.status = "approved";
+
+    // Update the requesting user's connections
+    const requestingUser = await User.findById(requestingUserId);
+    if (requestingUser) {
+      requestingUser.connections.push(approvingUserId);
+      await requestingUser.save();
+    }
+
+    await approvingUser.save();
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Connection approved successfully.",
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while approving the connection request.",
     });
   }
 };
