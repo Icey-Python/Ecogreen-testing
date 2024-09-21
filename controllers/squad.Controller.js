@@ -583,7 +583,7 @@ export const removeMember = async (req, res) => {
 //MODERATORS 
 
 //@ desc add moderator of squad
-//@ route POST api/v1/squad/moderator/create
+//@ route POST api/v1/squad/moderator/add
 export const addModeratorToSquad = async (req, res) => {
   try {
     const userId = res.locals.userId
@@ -840,6 +840,52 @@ export const deleteModerator = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while trying to delete moderator',
+      data: null,
+    })
+  }
+}
+
+//@ desc get all moderators of a squad 
+//@ route GET api/v1/squad/moderator/all
+export const getAllModerators = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const squadId = req.params.id
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+
+  
+    const moderators = await Moderator.find({squadId:squadId})
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Moderators fetched successfully',
+      data: moderators,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to fetch moderators',
       data: null,
     })
   }
