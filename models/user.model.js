@@ -60,6 +60,18 @@ const UserSchema = new Schema(
       token: String,
       expires: Date,
     },
+    //emailVerified:boolean
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    contact: {
+      type: String,
+    },
+    location:{
+      latitude: Number,
+      longitude: Number
+    }
   },
   { timestamps: true }
 );
