@@ -1,19 +1,23 @@
-import { model, Schema } from "mongoose";
+import { model, Schema } from 'mongoose'
 
 const MessageSchema = new Schema(
   {
-   message : {
-    type : String,
-    required: true,
-   },
-   sender : {
-        type :Schema.Types.ObjectId,
-        required: true,
-   }
+    message: {
+      type: String,
+      required: true,
+    },
+    sender: {
+      type: Schema.Types.ObjectId,
+      required: true,
+    },
+    seen: {
+      type: Boolean,
+      default: false,
+    },
   },
-  { timestamps: true }
-);
+  { timestamps: true },
+)
 
-const Message = model("Message", MessageSchema);
+const Message = model('Message', MessageSchema)
 
-export default Message;
+export default Message
