@@ -240,3 +240,48 @@ export const purchaseProduct = async (req, res) => {
     });
   }
 };
+
+
+// @desc Fetch latest products
+// @route GET /api/v1/product/latest
+export const getLatestProducts = async (req, res) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 }).limit(10); // Fetch the 10 latest products
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Latest products fetched successfully.",
+      data: products,
+    });
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while fetching the latest products.",
+    });
+  }
+};
+
+
+// @desc Fetch current flash sales
+// @route GET /api/v1/product/flash-sales
+export const getFlashSales = async (req, res) => {
+  try {
+    const currentDateTime = new Date();
+    const products = await Product.find({
+      flashSaleStart: { $lte: currentDateTime },
+      flashSaleEnd: { $gte: currentDateTime },
+    });
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Flash sale products fetched successfully.",
+      data: products,
+    });
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while fetching flash sale products.",
+    });
+  }
+};
+
+
