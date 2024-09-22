@@ -36,6 +36,10 @@ const PostSchema = new Schema(
         ref: "User",
       },
     ],
+    shares:{
+      type:Number,
+      default:0
+    },
     image: {
       type: String,
       default: "",

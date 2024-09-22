@@ -4,12 +4,14 @@ import { Logger } from 'borgen'
 import Post from '../models/post.model.js'
 import Squad from '../models/squad.model.js'
 import Admin from '../models/admin.model.js'
+import { Types } from 'mongoose'
+import Comment from '../models/comment.model.js'
 //@ desc Create post
 //@ route POST /api/v1/post/create
 export const createPost = async (req, res) => {
   try {
     const userId = res.locals.userId
-    const { title, content, image, squadId,category, tags } = req.body
+    const { title, content, image, squadId, category, tags } = req.body
     if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
@@ -38,8 +40,15 @@ export const createPost = async (req, res) => {
         data: null,
       })
     }
-    const user = User.findById(userId)
-    const squad = User.findById(squadId)
+    const user = await User.findById(userId)
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid squad Id',
+        data: null,
+      })
+    }
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -54,6 +63,7 @@ export const createPost = async (req, res) => {
         data: null,
       })
     }
+
     if (!squad.members.includes(userId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -61,7 +71,7 @@ export const createPost = async (req, res) => {
         data: null,
       })
     }
-    if (squad.moderator.length > 0 && !squad.moderator.includes(userId)) {
+    if (squad.moderators.length > 0 && !squad.moderators.includes(userId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'You are not allowed to perfom this action',
@@ -82,7 +92,10 @@ export const createPost = async (req, res) => {
     return res.status(StatusCodes.CREATED).json({
       status: 'success',
       message: 'Post created successfully',
-      data: post,
+      data: {
+        id: post._id,
+        name: post.title
+      },
     })
   } catch (error) {
     Logger.error({ message: error })
@@ -95,7 +108,7 @@ export const createPost = async (req, res) => {
 }
 
 //@ desc Get all posts
-//@ route GET /api/v1/post
+//@ route GET /api/v1/post/find/all
 export const getAllPosts = async (req, res) => {
   try {
     const userId = res.locals.userId
@@ -128,7 +141,7 @@ export const updatePost = async (req, res) => {
   try {
     const postId = req.params.id
     const userId = res.locals.userId
-    const { title, content, image,category, tags} = req.body
+    const { title, content, image, category, tags } = req.body
     const post = await Post.findById(postId)
     if (!post || !userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -138,25 +151,25 @@ export const updatePost = async (req, res) => {
       })
     }
     const squad = await Squad.findById(post.squad)
-    if(!squad.moderators.includes(userId) || userId != String(post.creator)) {
+    if (!squad.moderators.includes(userId) || userId != String(post.creator)) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
         data: null,
       })
     }
-  if(title) post.title = title
-  if(content) post.content = content
-  if(image) post.image = image
-  if(category) post.category = category
-  if(tags) post.tags = tags
-  await post.save()
-  return res.status(StatusCodes.OK).json({
-    status: 'success',
-    message: 'Post updated successfully',
-    data: post,
-  })
-  } 
+    if (title) post.title = title
+    if (content) post.content = content
+    if (image) post.image = image
+    if (category) post.category = category
+    if (tags) post.tags = tags
+    await post.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Post updated successfully',
+      data: post,
+    })
+  }
   catch (error) {
     Logger.error({ message: error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -172,6 +185,13 @@ export const deletePost = async (req, res) => {
   try {
     const postId = req.params.id
     const userId = res.locals.userId
+    if (!postId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid post Id',
+        data: null,
+      })
+    }
     const post = await Post.findById(postId)
     if (!post || !userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -183,7 +203,7 @@ export const deletePost = async (req, res) => {
 
     const squad = await Squad.findById(post.squad)
 
-    if(!squad.moderators.includes(userId) || userId != String(post.creator || !Admin.findById(userId))) {
+    if (!squad.moderators.includes(userId) || userId != String(post.creator || !Admin.findById(userId))) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -210,7 +230,7 @@ export const deletePost = async (req, res) => {
 //@ route GET /api/v1/post/:id
 export const getPost = async (req, res) => {
   try {
-    if(!res.locals.userId) {
+    if (!res.locals.userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'Please login and try again',
@@ -226,6 +246,13 @@ export const getPost = async (req, res) => {
     }
     const postId = req.params.id
     const post = await Post.findById(postId)
+    if (!post) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid post Id',
+        data: null,
+      })
+    }
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Post fetched successfully',
@@ -245,7 +272,7 @@ export const getPost = async (req, res) => {
 //@ route PUT /api/v1/post/like/:id
 export const likePost = async (req, res) => {
   try {
-    if(!res.locals.userId) {
+    if (!res.locals.userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'Please login and try again',
@@ -267,9 +294,12 @@ export const likePost = async (req, res) => {
       post.likes = post.likes.filter((like) => like != userId)
       await post.save()
       return res.status(StatusCodes.OK).json({
-        status: 'error',
+        status: 'success',
         message: 'You have removed your like from this post',
-        data: null,
+        data: {
+          postId,
+          likes: parseInt(post.likes.length, 10),
+        },
       })
     }
     post.likes.push(new Types.ObjectId(userId))
@@ -279,7 +309,7 @@ export const likePost = async (req, res) => {
       message: 'Post liked successfully',
       data: {
         postId,
-        likes: parseInt(post.likes.length,10)+1,
+        likes: parseInt(post.likes.length, 10),
       },
     })
   } catch (error) {
@@ -296,7 +326,7 @@ export const likePost = async (req, res) => {
 //@ route PUT /api/v1/post/comment/:id
 export const commentPost = async (req, res) => {
   try {
-    if(!res.locals.userId) {
+    if (!res.locals.userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'Please login and try again',
@@ -319,6 +349,8 @@ export const commentPost = async (req, res) => {
       creator: new Types.ObjectId(userId),
       post: new Types.ObjectId(postId),
     })
+    post.comments.push(comment._id)
+    await post.save()
     await comment.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -338,7 +370,7 @@ export const commentPost = async (req, res) => {
 //@ route DELETE /api/v1/post/comment/delete/:id
 export const deleteComment = async (req, res) => {
   try {
-    if(!res.locals.userId) {
+    if (!res.locals.userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'Please login and try again',
@@ -361,18 +393,25 @@ export const deleteComment = async (req, res) => {
         data: null,
       })
     }
-    if(!comment.creator.equals(res.locals.userId) || !Admin.findById(res.locals.userId)) {
+    if (!comment.creator.equals(res.locals.userId) || !Admin.findById(res.locals.userId)) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
         data: null,
       })
     }
-    await comment.findByIdAndDelete(commentId)
+    const post = await Post.findById(comment.post)
+    post.comments = post.comments.filter((comment) => !comment.equals(commentId))
+    await post.save()
+    await Comment.findByIdAndDelete(commentId)
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Comment deleted successfully',
-      data: null,
+      data: {
+        commentId,
+        postId: post._id,
+        comments: post.comments.length,
+      },
     })
   } catch (error) {
     Logger.error({ message: error })
@@ -385,10 +424,10 @@ export const deleteComment = async (req, res) => {
 }
 
 //@ desc Get all comments
-//@ route GET /api/v1/post/comment/all
+//@ route GET /api/v1/post/comment/all/:id
 export const getAllComments = async (req, res) => {
   try {
-    if(!res.locals.userId) {
+    if (!res.locals.userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'Please login and try again',
@@ -411,7 +450,7 @@ export const getAllComments = async (req, res) => {
         data: null,
       })
     }
-    if(comments.length === 0) {
+    if (comments.length === 0) {
       return res.status(StatusCodes.OK).json({
         status: 'success',
         message: 'No comments found for this post',
@@ -437,7 +476,7 @@ export const getAllComments = async (req, res) => {
 // @ route POST /api/v1/post/save/:id
 export const savePost = async (req, res) => {
   try {
-    if(!res.locals.userId) {
+    if (!res.locals.userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'Please login and try again',
@@ -446,7 +485,7 @@ export const savePost = async (req, res) => {
     }
     const postId = req.params.id
     const userId = res.locals.userId
-    const user = User.findById(userId)
+    const user = await User.findById(userId)
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -463,16 +502,19 @@ export const savePost = async (req, res) => {
       })
     }
 
-    if(post.saves.includes(new Types.ObjectId(userId))) {
-      post.saves = post.saves.filter((id)=>id.toString() !== userId.toString())
-      user.saves = user.saves.filter((id)=>id.toString() !== postId.toString())
+    if (post.saves.includes(new Types.ObjectId(userId))) {
+      post.saves = post.saves.filter((id) => id.toString() !== userId.toString())
+      user.saves = user.saves.filter((id) => id.toString() !== postId.toString())
       await user.save()
       await post.save()
 
       return res.status(StatusCodes.OK).json({
-        status: 'error',
+        status: 'success',
         message: 'You have removed this post from your saves',
-        data: null,
+        data: {
+          postId,
+          saves: parseInt(post.saves.length, 10),
+        },
       })
     }
     post.saves.push(new Types.ObjectId(userId))
@@ -484,7 +526,7 @@ export const savePost = async (req, res) => {
       message: 'Post saved successfully',
       data: {
         postId,
-        saves: parseInt(post.saves.length,10)+1,
+        saves: parseInt(post.saves.length, 10),
       },
     })
   }
@@ -498,3 +540,67 @@ export const savePost = async (req, res) => {
   }
 }
 
+//@ desc share post 
+//@ route POST /api/v1/post/share/:id
+export const sharePost = async (req, res) => {
+  try {
+    const postId = req.params.id
+    const post = await Post.findById(postId)
+    if (!post) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid post Id',
+        data: null,
+      })
+    }
+    //create a link from server hostname 
+    const postLink = `${process.env.BASE_URL}/api/v1/post/share/view/${postId}`
+    post.shares = parseInt(post.shares, 10) + 1
+    await post.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Post shared successfully',
+      data: {
+        id: post.id,
+        link: postLink
+      },
+    })
+  }
+  catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occured while trying to share your post',
+      data: null,
+    })
+  }
+}
+
+//@ desc view shared post 
+//@ route GET /api/v1/post/share/view/:id
+export const getSharedPost = async (req, res) => {
+  try {
+    const postId = req.params.id
+    const post = await Post.findById(postId)
+    if (!post) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid post Id',
+        data: null,
+      })
+    }
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Post shared successfully',
+      data: post,
+    })
+  }
+  catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occured while trying to share your post',
+      data: null,
+    })
+  }
+}

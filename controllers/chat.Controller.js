@@ -116,7 +116,7 @@ export const fetchChatMessages = async (req, res) => {
 export const getAllChats = async (req, res) => {
   try {
     let userId = res.locals.userId;
-    //TODO: Update search query
+    //search query to find chats where the userId is a participant
     const chats = await Chat.find({
       participants: { $in: [userId] },
     });
@@ -124,7 +124,7 @@ export const getAllChats = async (req, res) => {
     return res.status(StatusCodes.OK).json({
       status: "success",
       message: "Fetched chats successfully",
-      data: chat,
+      data: chats,
     });
   } catch (error) {
     Logger.error({ message: error.message });

@@ -240,6 +240,7 @@ export const forgotPasswordOtp = async (req, res) => {
       expires: Date.now() + 300000,
     }
     user.resetDetails = resetDetails
+    user.emailVerified = false
     await user.save()
     const { data, error } = await resend.emails.send({
       from: 'Acme <onboarding@resend.dev>',
@@ -379,6 +380,7 @@ export const sendOtp = async (req, res) => {
       expires: Date.now() + 300000,
     }
     user.authDetails = authDetails
+    user.emailVerified = false
     await user.save()
     const { data, error } = await resend.emails.send({
       to:["ndungusamkelly5@gmail.com"],
@@ -489,7 +491,6 @@ export const sendOtp = async (req, res) => {
 }
 //@desc verify OTP -> resetPassword
 //@route POST /api/v1/users/otp/verify
-
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otpCode } = req.body
@@ -522,7 +523,8 @@ export const verifyOtp = async (req, res) => {
         data: null,
       })
     }
-    
+    user.emailVerified = true
+    await user.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'OTP verified successfully',
@@ -537,6 +539,7 @@ export const verifyOtp = async (req, res) => {
     })
   }
 }
+
 //@desc New Password after OTP verfication 
 //@route POST /api/v1/users/reset/password/new
 export const resetPassword = async (req, res) => {
@@ -558,6 +561,7 @@ export const resetPassword = async (req, res) => {
       })
     }
     user.password = bcrypt.hash(password, 10)
+    user.emailVerified = true
     await user.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -573,9 +577,9 @@ export const resetPassword = async (req, res) => {
     })
   }
 }
+
 //@desc Delete user's own account by ID
 //@route DELETE /api/v1/users/:id
-
 export const deleteUserById = async (req, res) => {
   try {
     const userId = req.params.id
