@@ -29,7 +29,19 @@ const ProductSchema = new Schema(
     quantity :{
         type: Number,
         required:true
-    }
+    },
+    flashSalePrice: {
+      type: Number,
+      default :null,
+    },
+    flashSaleStart :{
+      type: Date,
+      default:null,
+    },
+    flashSaleEnd : {
+      type:Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

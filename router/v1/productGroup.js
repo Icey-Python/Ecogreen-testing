@@ -6,7 +6,9 @@ import {
     updateProduct,
     deleteProduct,
     purchaseProduct,
-    getAllProducts
+    getAllProducts,
+    getLatestProducts,
+    getFlashSales,
 } from "../../controllers/product.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { userAdminAuth } from "../../middleware/userAdminAuth.js";
@@ -21,5 +23,7 @@ router.get("/all",userAdminAuth, getAllProducts );
 router.put("/update/:id",userAuth, updateProduct)
 router.delete("/delete/:id",userAuth, deleteProduct)
 router.post("/purchase/:id",userAuth, purchaseProduct)
+router.get("/latest",userAuth, getLatestProducts );
+router.get("/flash-sales",userAuth, getFlashSales)
 
 export default router;
