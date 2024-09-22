@@ -2,6 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import Chat from "../models/chat.model.js";
 import Message from "../models/message.model.js";
 import { Types } from "mongoose";
+import { Logger } from "borgen";
 
 // @desc Send messages
 // @route POST /api/v1/chat/message
@@ -161,14 +162,14 @@ export const deleteChat = async (req, res) => {
   try {
     let chatId = req.params.id;
     const userId = res.locals.userId;
-    if(!userId){
+    if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: "error",
         message: "Please login and try again",
         data: null,
       });
     }
-    if(!chatId){
+    if (!chatId) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: "error",
         message: "Invalid chat id",
@@ -184,7 +185,7 @@ export const deleteChat = async (req, res) => {
         data: null,
       });
     }
-     
+
     await Message.deleteMany({ _id: { $in: deletedChat.messages } });
     return res.status(StatusCodes.OK).json({
       status: "success",
@@ -200,3 +201,60 @@ export const deleteChat = async (req, res) => {
     });
   }
 };
+
+//@ desc update Chat Seen 
+//@ route PUT /api/v1/chat/seen/:id
+export const updateChatSeen = async (req, res) => {
+  try {
+    let chatId = req.params.id;
+    const userId = res.locals.userId;
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "Please login and try again",
+        data: null,
+      });
+    }
+    if (!chatId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Invalid chat id",
+        data: null,
+      });
+    }
+
+    let chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Chat not found",
+        data: null,
+      });
+    }
+
+    if (!chat.participants.includes(userId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "You are not a participant of this chat",
+        data: null,
+      });
+    }
+
+    const chatMessages = await Message.updateMany({
+      id: { $in: chat.messages },
+      $set: { seen: true },
+    });
+    return res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Chat seen successfully",
+      data: null,
+    });
+  } catch (error) {
+    Logger.error({ message: error.message });
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while updating the chat",
+      data: null,
+    });
+  }
+}
