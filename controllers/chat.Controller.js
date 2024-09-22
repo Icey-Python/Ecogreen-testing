@@ -10,13 +10,32 @@ export const sendChatMessage = async (req, res) => {
     const { message, receiverId } = req.body;
     const senderId = res.locals.userId;
 
-    if (
-      !Types.ObjectId.isValid(senderId) ||
-      !Types.ObjectId.isValid(receiverId)
-    ) {
+    if (!senderId) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: "error",
-        message: "Invalid chat id",
+        message: "Please login and try again",
+        data: null,
+      });
+    }
+    if (!receiverId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Please provide receiver id",
+        data: null,
+      });
+    }
+    if (!message) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Please provide message",
+        data: null,
+      });
+    }
+
+    if (!Types.ObjectId.isValid(receiverId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Invalid receiver id",
         data: null,
       });
     }
@@ -141,8 +160,23 @@ export const getAllChats = async (req, res) => {
 export const deleteChat = async (req, res) => {
   try {
     let chatId = req.params.id;
-    let deletedChat = await Chat.findByIdAndDelete(chatId);
+    const userId = res.locals.userId;
+    if(!userId){
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "Please login and try again",
+        data: null,
+      });
+    }
+    if(!chatId){
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Invalid chat id",
+        data: null,
+      });
+    }
 
+    let deletedChat = await Chat.findByIdAndDelete(chatId);
     if (!deletedChat) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: "error",
@@ -150,7 +184,8 @@ export const deleteChat = async (req, res) => {
         data: null,
       });
     }
-
+     
+    await Message.deleteMany({ _id: { $in: deletedChat.messages } });
     return res.status(StatusCodes.OK).json({
       status: "success",
       message: "Chat deleted successfully",
