@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
 import Product from '../models/product.model.js'; 
 import { StatusCodes } from 'http-status-codes';
+import { Logger } from 'borgen'
 
 // @desc Add an item to cart
 // @route POST /api/v1/user/cart/add
