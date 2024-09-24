@@ -1,4 +1,4 @@
-import { model, Schema} from "mongoose";
+import { model, Schema } from 'mongoose'
 
 const UserSchema = new Schema(
   {
@@ -12,50 +12,58 @@ const UserSchema = new Schema(
       index: true,
       unique: true,
     },
-    password:{
-        type:String,
-        required:true,
+    password: {
+      type: String,
+      required: true,
     },
-    squads:[{
-      type: Schema.Types.ObjectId,
-      ref:"Squad"
-    }],
-    saves:[{
-      type: Schema.Types.ObjectId,
-      ref:"Post"
-    }],
-    balance:{
-      type:Number,
-      default:0
-    },
-    donations:{
-      type:Number,
-      default:0
-    },
-    connections:[
+    squads: [
       {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'Squad',
+      },
+    ],
+    saves: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Post',
+      },
+    ],
+    balance: {
+      type: Number,
+      default: 0,
+    },
+    donations: {
+      type: Number,
+      default: 0,
+    },
+    connections: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
       },
     ],
     connectionRequests: [
       {
-        from: { type: Schema.Types.ObjectId, ref: "User" },
-        status: { type: String, enum: ["pending", "approved"], default: "pending" },
+        from: { type: Schema.Types.ObjectId, ref: 'User' },
+        status: {
+          type: String,
+          enum: ['pending', 'approved'],
+          default: 'pending',
+        },
       },
     ],
     cart: [
       {
         product: { type: Schema.Types.ObjectId, ref: 'Product' },
-      quantity: { type: Number, required: true },
+        quantity: { type: Number, required: true },
       },
     ],
-    //token:string, expires: timestamp -> default time 5 mins  
+    //token:string, expires: timestamp -> default time 5 mins
     resetDetails: {
       token: String,
       expires: Date,
     },
-    //2FA 
+    //2FA
     authDetails: {
       token: String,
       expires: Date,
@@ -66,30 +74,36 @@ const UserSchema = new Schema(
       default: false,
     },
     //refferal
-    refferal:{
-      totalEarned: {type: Number, default: 0},
-      code:{
+    refferal: {
+      totalEarned: { type: Number, default: 0 },
+      code: {
         type: String,
-        unique: true
+        unique: true,
       },
       refferedUsers: [
         {
           type: Schema.Types.ObjectId,
-          ref: "User",
+          ref: 'User',
         },
       ],
     },
     contact: {
       type: String,
     },
-    location:{
-      latitude: Number,
-      longitude: Number
-    }
+    location: {
+        latitude: {
+          type: Number,
+          required: true,
+        },
+        longitude: {
+          type: Number,
+          required: true,
+        },
+      },
   },
-  { timestamps: true }
-);
+  { timestamps: true },
+)
 
-const User = model("User", UserSchema);
+const User = model('User', UserSchema)
 
-export default User;
+export default User
