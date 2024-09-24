@@ -12,6 +12,7 @@ import {
   sendOtp,
   verifyOtp,
   resetPassword,
+  getRefferalCode,
 } from "../../controllers/user.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
@@ -29,5 +30,6 @@ router.put("/connect/approve/:requestingUserId", userAuth, approveConnection);
 router.put("/reset/password/otp", forgotPasswordOtp);
 router.put("/reset/password/new", resetPassword);
 router.post("/otp", sendOtp);//2FA
-router.post("/otp/verify", verifyOtp);//2FA
+router.post("/otp/verify", verifyOtp);//2FA 
+router.get("/get/reffer", userAuth, getRefferalCode);
 export default router;

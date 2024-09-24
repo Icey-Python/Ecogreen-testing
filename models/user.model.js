@@ -65,6 +65,20 @@ const UserSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    //refferal
+    refferal:{
+      totalEarned: {type: Number, default: 0},
+      code:{
+        type: String,
+        unique: true
+      },
+      refferedUsers: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+    },
     contact: {
       type: String,
     },
