@@ -42,6 +42,14 @@ const ProductSchema = new Schema(
       type:Date,
       default: null,
     },
+    category: {
+      type: String,
+      required: true,  
+    },
+    purchaseCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
