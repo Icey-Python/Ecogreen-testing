@@ -91,15 +91,15 @@ const UserSchema = new Schema(
       type: String,
     },
     location: {
-        latitude: {
-          type: Number,
-          required: true,
-        },
-        longitude: {
-          type: Number,
-          required: true,
-        },
-      },
+    type: {
+      type: String, // Defines the GeoJSON type, which must be 'Point'
+      enum: ['Point'], 
+      default: 'Point',// Restricts the type to 'Point' only
+    },
+    coordinates: {
+      type: [Number], // Array of numbers: [longitude, latitude
+    },
+  },
   },
   { timestamps: true },
 )

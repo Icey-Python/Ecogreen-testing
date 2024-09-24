@@ -14,8 +14,7 @@ const resend = new Resend(Config.RS_MAIL_KEY)
 // @desc Register user
 export const signUpUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body
-    const refferalCode = req.query.refferalCode
+    const { name, email, password, refferalCode } = req.body
     if (!name || !email || !password) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -34,6 +33,7 @@ export const signUpUser = async (req, res) => {
     let hashedPassword = await bcrypt.hash(password, 10)
     const userRefferalCode = otp.generate(6, {
       upperCaseAlphabets: true,
+      lowerCaseAlphabets: true,
       digits: true,
       specialChars: false,
     })
@@ -630,18 +630,37 @@ export const approveConnection = async (req, res) => {
 export const getRefferalCode = async (req, res) => {
   try {
     const userId = res.locals.userId
-    const user = await User.findById(userId).select('refferalCode')
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login and try again',
+        data: null,
+      })
+    }
+    const user = await User.findById(userId)
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
-        message: 'User not found',
+        message: 'Invalid Id',
         data: null,
       })
     }
     const refferalCode = user.refferal.code
+    console.log(refferalCode)
+    if (!refferalCode) {
+      // Generate Refferal Code
+      const refferalCode = otp.generate(6, {
+        lowerCaseAlphabets: true,
+        upperCaseAlphabets: true,
+        digits: true,
+        specialChars: false,
+      })
+      user.refferal.code = refferalCode
+      await user.save()
+    }
     res.status(StatusCodes.OK).json({
       status: 'success',
-      message: 'User fetched successfully',
+      message: 'Refferal Code fetched successfully',
       data: {
         refferalCode,
       },
