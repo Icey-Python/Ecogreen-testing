@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import { Config } from '../lib/config.js'
 import otp from 'otp-generator'
 import { Resend } from 'resend'
+import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
@@ -14,14 +15,49 @@ const resend = new Resend(Config.RS_MAIL_KEY)
 export const signUpUser = async (req, res) => {
   try {
     const { name, email, password } = req.body
-
+    const refferalCode = req.query.refferalCode
+    if (!name || !email || !password) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'All fields are required',
+        data: null,
+      })
+    }
+    const user = await User.findOne({ email })
+    if (user) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'User already exists',
+        data: null,
+      })
+    }
     let hashedPassword = await bcrypt.hash(password, 10)
+    const userRefferalCode = otp.generate(6, {
+      upperCaseAlphabets: true,
+      digits: true,
+      specialChars: false,
+    })
     let newUser = new User({
       name,
       email,
       password: hashedPassword,
+      refferal: { code: userRefferalCode },
     })
-
+    // update referree users
+    if (refferalCode) {
+      const refferalUser = await User.findOne({
+        refferal: { code: refferalCode },
+      })
+      if (!refferalUser) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          status: 'error',
+          message: 'Invalid refferal code',
+          data: null,
+        })
+      }
+      refferalUser.refferal.refferedUsers.push(newUser._id)
+      await refferalUser.save()
+    }
     let data = await newUser.save()
     // Create jwt
     let token = jwt.sign(
@@ -246,93 +282,7 @@ export const forgotPasswordOtp = async (req, res) => {
       from: 'Acme <onboarding@resend.dev>',
       to: ['ndungusamkelly5@gmail.com'],
       subject: 'Password Reset',
-      html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Reset</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .header {
-            background-color: #4CAF50;
-            padding: 10px;
-            color: white;
-            border-radius: 8px 8px 0 0;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-        .content {
-            padding: 20px;
-        }
-        .content p {
-            font-size: 16px;
-            color: #333;
-        }
-        .otp-code {
-            display: inline-block;
-            background-color: #f9f9f9;
-            padding: 15px;
-            font-size: 28px;
-            letter-spacing: 10px;
-            font-weight: bold;
-            color: #333;
-            border: 2px dashed #4CAF50;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .footer {
-            padding: 10px;
-            font-size: 14px;
-            color: #777;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
-        <h1>Password Reset Request</h1>
-    </div>
-
-    <div class="content">
-        <p>Hi,</p>
-        <p>You requested to reset your password. Please use the OTP code below to proceed with resetting your password:</p>
-
-        <div class="otp-code">
-            ${otpCode}
-        </div>
-
-        <p>This code will expire in 10 minutes. If you did not request a password reset, please ignore this email.</p>
-    </div>
-
-    <div class="footer">
-        <p>If you have any questions, feel free to contact our support team.</p>
-        <p>&copy; 2024 Ecogreen. All rights reserved.</p>
-    </div>
-</div>
-
-</body>
-</html>
-`,
+      html: otpEmail(otpCode),
     })
     if (error) {
       Logger.error({ message: error.message })
@@ -383,89 +333,10 @@ export const sendOtp = async (req, res) => {
     user.emailVerified = false
     await user.save()
     const { data, error } = await resend.emails.send({
-      to:["ndungusamkelly5@gmail.com"],
+      to: ['ndungusamkelly5@gmail.com'],
       from: 'Acme <onboarding@resend.dev>',
       subject: 'OTP Code',
-      html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OTP Code</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 8px 8px 0 0;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-        .content {
-            padding: 20px;
-        }
-        .content p {
-            font-size: 16px;
-            color: #333;
-        }
-        .otp-code {
-            display: inline-block;
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .footer {
-            padding: 10px;
-            font-size: 14px;
-            color: #777;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
-        <h1>OTP Code</h1>
-    </div>
-
-    <div class="content">
-        <p>Hi,</p>
-        <p>Someone requested to sign into your acoount, enter this code to verify if it you who is signing in </p>
-
-        <div class="otp-code">
-            ${otpCode}
-        </div>
-
-        <p>If Its not you who is trying to sign in, please reset your password ASAP.</p>
-    </div>
-
-    <div class="footer">
-        <p>If you have any questions, feel free to contact our support team.</p>
-        <p>&copy; 2024 Ecogreen. All rights reserved.</p>
-    </div>
-</div>
-
-</body>
-</html>
-`,
+      html: resetEmail(otpCode),
     })
     if (error) {
       Logger.error({ message: error.message })
@@ -509,14 +380,20 @@ export const verifyOtp = async (req, res) => {
         data: null,
       })
     }
-    if (Date.now() > user.authDetails.expires || Date.now() > user.resetDetails.expires) {
+    if (
+      Date.now() > user.authDetails.expires ||
+      Date.now() > user.resetDetails.expires
+    ) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'OTP expired',
         data: null,
       })
     }
-    if (!bcrypt.compare(otpCode, user.authDetails.token) || !bcrypt.compare(otpCode,user.resetDetails.token)) {
+    if (
+      !bcrypt.compare(otpCode, user.authDetails.token) ||
+      !bcrypt.compare(otpCode, user.resetDetails.token)
+    ) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Invalid OTP code',
@@ -540,7 +417,7 @@ export const verifyOtp = async (req, res) => {
   }
 }
 
-//@desc New Password after OTP verfication 
+//@desc New Password after OTP verfication
 //@route POST /api/v1/users/reset/password/new
 export const resetPassword = async (req, res) => {
   try {
@@ -708,10 +585,9 @@ export const approveConnection = async (req, res) => {
     // Find the connection request
 
     const connectionRequestIndex = approvingUser.connectionRequests.findIndex(
-      (req) => req.from.toString() === requestingUserId && req.status === "pending"
-    );
-
-    
+      (req) =>
+        req.from.toString() === requestingUserId && req.status === 'pending',
+    )
 
     if (!connectionRequestIndex === -1) {
       return res.status(StatusCodes.NOT_FOUND).json({
@@ -722,13 +598,11 @@ export const approveConnection = async (req, res) => {
 
     // Approve the request: Add each user to the other's connections array
 
-    approvingUser.connections.push(requestingUserId);
-    approvingUser.connectionRequests[connectionRequestIndex].status = "approved";
+    approvingUser.connections.push(requestingUserId)
+    approvingUser.connectionRequests[connectionRequestIndex].status = 'approved'
 
     // Remove the connection request from the approving user's connectionRequests array
-    approvingUser.connectionRequests.splice(connectionRequestIndex, 1);
-
-    
+    approvingUser.connectionRequests.splice(connectionRequestIndex, 1)
 
     // Update the requesting user's connections
     const requestingUser = await User.findById(requestingUserId)
@@ -747,6 +621,37 @@ export const approveConnection = async (req, res) => {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while approving the connection request.',
+    })
+  }
+}
+
+// @ desc Get User Refferal Code
+// @ route GET /api/v1/user/reffer
+export const getRefferalCode = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const user = await User.findById(userId).select('refferalCode')
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'User not found',
+        data: null,
+      })
+    }
+    const refferalCode = user.refferal.code
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'User fetched successfully',
+      data: {
+        refferalCode,
+      },
+    })
+  } catch (error) {
+    Logger.error({ message: error.message })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while fetching user',
+      data: null,
     })
   }
 }
