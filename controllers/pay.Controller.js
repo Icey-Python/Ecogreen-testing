@@ -16,7 +16,7 @@ export const stkPush = async (req, res) => {
     //const account_number = fieldPaymentDetails?.account_number
     //const till_number = fieldPaymentDetails?.till_number
     //TODO: Update call back url
-    const CALLBACK_URL = 'https://shepherd-main-lioness.ngrok-free.app'
+    const CALLBACK_URL = `${req.protocol}://${req.get('host')}/api/v1/pay/callback`
     //TODO: Add business short code
     const BUSINESS_SHORT_CODE = false ? "" : '174379'
 
