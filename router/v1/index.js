@@ -13,6 +13,7 @@ import postGroup from './postGroup.js'
 import cartGroup from  './cartGroup.js'
 import eventsGroup from  './eventsGroup.js'
 import greenBankGroup from "./greenBankGroup.js"
+import activityGroup from "./activityGroup.js"
 
 
 const router = Router();
@@ -32,6 +33,7 @@ router.use('/post', postGroup)
 router.use("/cart",cartGroup)
 router.use("/events",eventsGroup)
 router.use("/greenBank", greenBankGroup)
+router.use("/activity", activityGroup)
 
 
 

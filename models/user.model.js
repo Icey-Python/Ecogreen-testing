@@ -85,7 +85,7 @@ const UserSchema = new Schema(
     location:{
       latitude: Number,
       longitude: Number
-    }
+    },
   },
   { timestamps: true }
 );

@@ -21,10 +21,10 @@ const router = Router();
 
 router.post("/signup", signUpUser);
 router.post("/login", loginUser);
-router.put("/:id", userAuth, updateUserById);
+router.put("/update/:id", userAuth, updateUserById);
 router.put("/password/:id", userAuth, updateUserPassword);
-router.delete("delete/:id", deleteUserById);
-router.get("/users", adminAuth, getAllUsers);
+router.delete("/delete/:id",adminAuth, deleteUserById);
+router.get("/all", adminAuth, getAllUsers);
 router.post("/connect/request/:recipientUserId", userAuth, requestConnection);
 router.put("/connect/approve/:requestingUserId", userAuth, approveConnection);
 router.put("/reset/password/otp", forgotPasswordOtp);
