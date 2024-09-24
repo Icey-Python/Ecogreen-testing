@@ -15,8 +15,8 @@ import {
 const router = Router()
 
 router.post('/create', adminAuth, createShop)
-router.delete('/delete', adminAuth, deleteShop)
-router.put('/update', adminAuth, updateShop)
+router.delete('/delete/:id', adminAuth, deleteShop)
+router.put('/update/:id', adminAuth, updateShop)
 router.get('/find/all', userAdminAuth, getAllShops)//user specific shop
 router.get('/find/nearby', userAuth, getNearbyShops)
 router.get('/find/:id', userAdminAuth, getShop)

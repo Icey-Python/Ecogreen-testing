@@ -57,7 +57,7 @@ export const createShop = async (req, res) => {
 // @ route DELETE /api/v1/shop/delete/:id
 export const deleteShop = async (req, res) => {
   try {
-    const shopId = req.body.id
+    const shopId = req.params.id
     if (!shopId) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -89,10 +89,12 @@ export const deleteShop = async (req, res) => {
 }
 
 // @ desc Update shop details
-// @ route PUT /api/v1/shop/update
+// @ route PUT /api/v1/shop/update/:id
 export const updateShop = async (req, res) => {
   try {
-    const { id, name, description, location, contact } = req.body
+    const id = req.params.id
+    
+    const { name, description, location, contact } = req.body
     if (!id) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -153,7 +155,7 @@ export const getAllShops = async (req, res) => {
 
 // @ desc find by id
 // @ route GET /api/v1/shop/find/:id
-export const getShop = (req, res) => {
+export const getShop = async (req, res) => {
   try {
     const shopId = req.params.id
     if (!shopId) {
@@ -163,7 +165,8 @@ export const getShop = (req, res) => {
         data: null,
       })
     }
-    const shop = Shop.findById(shopId)
+    const shop = await Shop.findById(shopId)
+    
     if (!shop) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
