@@ -33,18 +33,16 @@ export const userAdminAuth = async (req, res, next) => {
   
       // Check if the user exists either as a user or admin
       if (user) {
-        req.user = user;
-        req.role = "user"; 
+        res.locals.userId = user; 
         next(); 
       } else if (admin) {
-    
-        req.admin = admin;
-        req.role = "admin"; 
+        res.locals.userId = admin; 
         next(); 
       } else {
         return res.status(StatusCodes.UNAUTHORIZED).json({
           status: "error",
           message: "You are not allowed to perform this action.",
+          data: null,
         });
       }
     } catch (error) {
@@ -52,6 +50,7 @@ export const userAdminAuth = async (req, res, next) => {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: "error",
         message: "You are not allowed to perform this action",
+        data: null,
       });
     }
   };
