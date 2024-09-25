@@ -8,6 +8,8 @@ import otp from 'otp-generator'
 import { Resend } from 'resend'
 import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
 
+
+
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
 // @route POST /api/v1/user/signup
@@ -58,6 +60,8 @@ export const signUpUser = async (req, res) => {
       refferalUser.refferal.refferedUsers.push(newUser._id)
       await refferalUser.save()
     }
+
+    
     let data = await newUser.save()
     // Create jwt
     let token = jwt.sign(

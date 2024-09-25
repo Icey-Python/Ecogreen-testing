@@ -89,6 +89,8 @@ const UserSchema = new Schema(
     },
     contact: {
       type: String,
+      required: true, // for phone calls
+      unique: true
     },
     location: {
     type: {
