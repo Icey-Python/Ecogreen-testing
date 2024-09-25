@@ -5,6 +5,7 @@ import User from '../models/user.model.js' // Import User model if needed for po
 import { Types, ObjectId } from 'mongoose'
 import { isValidObjectId } from 'mongoose'
 import Moderator from '../models/moderator.model.js'
+import CarbonCalculator from '../models/carbonCalculator.model.js'
 // @desc Create new squad
 // @route POST /api/v1/squad/create
 export const createSquad = async (req, res) => {
@@ -1040,3 +1041,140 @@ export const getAllPercentage = async (req, res) => {
     })
   }
 }
+
+// @ desc Get squad carbon calculation
+// @ route GET api/v1/squad/carbon/get/:id
+export const getCarbon = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const squadId = req.params.id
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+    const carbonData = CarbonCalculator.findById(squad.carbonCalculatorData);
+    if(!carbonData) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Carbon Calculator Id',
+        data: null,
+      })
+    }
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Carbon calculation fetched successfully',
+      data: {
+        name: squad.name,
+        carbonCalculatorData: carbonData,
+      },
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to fetch percentage',
+      data: null,
+    })
+  }
+}
+
+// @ desc Get all squad carbon calculation
+// @ route GET api/v1/squad/carbon/get/all
+export const getAggrgatedCarbon = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+
+    const squads = await Squad.find().select('carbonCalculatorData')
+    if (!squads) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'No squads found to perfom this action',
+        data: null,
+      })
+    }
+    const carbonCalculators = await CarbonCalculator.find({
+      _id: { $in: squads},
+    });
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Carbon calculation fetched successfully',
+      data: carbonCalculators,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to fetch percentage',
+      data: null,
+    })
+  }
+}
+
+// @ desc Controller function to add or update carbon calculator data
+// @ route POST api/v1/squad/carbon/upsert
+export const upsertCarbonCalculator = async (req, res) => {
+  try {
+    const { squadId, carbonFootprint, threshold, badgeEarned } = req.body;
+
+    if (!squadId || !carbonFootprint || !threshold || !badgeEarned) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Missing required fields',
+      });
+    }
+
+    // Find the document with the given squadId and update it if it exists, otherwise insert a new document
+    const result = await CarbonCalculator.findOneAndUpdate(
+      { squadId }, // Filter to find the document
+      {
+        squadId,
+        carbonFootprint,
+        threshold,
+        badgeEarned,
+      },
+      { 
+        new: true,      // Return the updated document
+        upsert: true,   // Create a new document if it doesn't exist
+        setDefaultsOnInsert: true, // Apply default values when creating a new document
+      }
+    );
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Carbon calculator data upserted successfully',
+      data: result,
+    });
+  } catch (error) {
+    Logger.error({ message: error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: `Failed to upsert carbon calculator data: ${error.message}`,
+    });
+  }
+};

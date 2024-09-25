@@ -40,6 +40,10 @@ const squadSchema = new Schema(
       default: 0,
       min: 0,
       max: 100
+    },
+    carbonCalculatorData:{
+      type: Schema.Types.ObjectId,
+      ref: 'CarbonCalculator',
     }
   },
   { timestamps: true }

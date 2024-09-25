@@ -36,6 +36,7 @@ router.put('/moderator/add', userAuth, addModeratorToSquad)
 router.put('/moderator/update', userAuth, updateModeratorRole)
 router.get('/moderator/all', userAuth, getAllModerators)
 router.put('/moderator/delete', userAuth, deleteModerator)
+
 //Percentage achieved on activities
 router.put('/achieved/update/:id', userAuth, updatePercentage);
 router.get('/achieved/get/:id', userAuth, getPercentage);
