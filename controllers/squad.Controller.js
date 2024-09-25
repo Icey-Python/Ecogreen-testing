@@ -890,3 +890,153 @@ export const getAllModerators = async (req, res) => {
     })
   }
 }
+
+// @ update percentage achieved on activities(fvc)
+// @ route PUT api/v1/squad/achieved/update/:id
+export const updatePercentage = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const squadId = req.params.id
+    const {percentage} = req.body
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+    if (!percentage) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Percentage is required',
+        data: null,
+      })
+    }
+
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+
+    if (userId != squad.admin) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perfom this action',
+        data: null,
+      })
+    }
+    squad.percentageAchieved = percentage
+    await squad.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Percentage updated successfully',
+      data: {
+        name: squad.name,
+        percentageAchieved: squad.percentageAchieved
+      },
+    })  
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to update percentage',
+      data: null,
+    })
+  }
+}
+
+// @ desc get percentage achieved on activities
+// @ route GET api/v1/squad/achieved/get/:id
+export const getPercentage = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const squadId = req.params.id
+    if (!squadId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Squad Id is required',
+        data: null,
+      })
+    }
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+
+    const squad = await Squad.findById(squadId)
+    if (!squad) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid Squad Id',
+        data: null,
+      })
+    }
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Percentage fetched successfully',
+      data: {
+        name: squad.name,
+        percentageAchieved: squad.percentageAchieved
+      },
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to fetch percentage',
+      data: null,
+    })
+  }
+}
+
+// @ desc get all percentage achieved on activities
+// @ route GET api/v1/squad/achieved/get/all
+export const getAllPercentage = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Login to perfom this action',
+        data: null,
+      })
+    }
+
+    const squads = await Squad.find().select('percentageAchieved')
+    if (!squads) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'No squads found to perfom this action',
+        data: null,
+      })
+    }
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Percentage fetched successfully',
+      data: squads,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while trying to fetch percentage',
+      data: null,
+    })
+  }
+}

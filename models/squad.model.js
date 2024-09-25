@@ -34,6 +34,12 @@ const squadSchema = new Schema(
     admin:{
         type: Schema.Types.ObjectId,
         ref:'User'
+    },
+    percentageAchieved:{
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
     }
   },
   { timestamps: true }
