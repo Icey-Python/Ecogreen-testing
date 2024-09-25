@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Config } from '../lib/config'
+import { Config } from '../lib/config.js'
 
 export const generateToken = async (
   req,
