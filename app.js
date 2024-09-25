@@ -6,9 +6,19 @@ import { Config } from './lib/config.js';
 import compression from 'compression';
 import connectDB from './database/connect.js';
 import router from './router/router.js';
+import http from 'http';
+import { ExpressPeerServer } from "peer";
 
 const app = express();
+const server = http.createServer(app);
+const peerServer = ExpressPeerServer(server, {
+  proxied: true,
+  debug: true,
+  path: "/myapp",
+  ssl: {},
+});
 
+app.use(peerServer);
 // Middlewares
 app.use(Borgen({}));
 app.use(compression());
@@ -28,7 +38,7 @@ app.get("/ping", (req, res) => {
 });
 
 const startServer = async () => {
-    app.listen(Config.PORT,()=>{
+    server.listen(Config.PORT,()=>{
         Logger.info({message:`Server is listening on port ${Config.PORT}`})
     })
 }
