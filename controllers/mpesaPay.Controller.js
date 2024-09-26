@@ -6,6 +6,8 @@ import { timestamp } from "../util/timestamp.js";
 import { StatusCodes } from "http-status-codes";
 import crypto from "crypto";
 import User from "../models/user.model.js";
+import Withdraw  from "../models/withdraw.model.js";
+import Deposit from "../models/deposit.model.js";
 
 // Mpesa STK push
 // @route POST /api/v1/pay/stk
@@ -82,6 +84,18 @@ export const stkPush = async (req, res) => {
       }
     );
 
+    const checkoutRequestID = response.data.CheckoutRequestID;
+
+    const newDeposit = new Deposit({
+      userId,
+      amount,
+      phone,
+      transactionId: checkoutRequestID, // Save transaction ID for future reference
+    });
+    
+    await newDeposit.save();
+
+
     res.status(HttpStatusCode.Created).json({
       status: "success",
       message: "Deposit successful, points updated, and GreenBank credited",
@@ -115,6 +129,17 @@ export const callback = async (req, res) => {
     const callbackMetadata = stkCallback.CallbackMetadata;
     console.log(resultCode);
 
+
+     // Find the corresponding deposit record using CheckoutRequestID
+     const deposit = await Deposit.findOne({ transactionId: checkoutRequestID });
+
+     if (!deposit) {
+       return res.status(404).json({
+         status: "error",
+         message: "Deposit record not found",
+       });
+     }
+
     if (resultCode === 0) {
       const amount = callbackMetadata.Item.find(
         (item) => item.Name === "Amount"
@@ -130,6 +155,12 @@ export const callback = async (req, res) => {
       ).Value;
 
       const transaction_date = new Date(transactionDate);
+
+      // Update the deposit status to 'success'
+      deposit.status = "success";
+      deposit.mpesaReceiptNumber = mpesaReceiptNumber; // Store receipt number for reference
+      deposit.transactionDate = transaction_date;
+      await deposit.save();
 
       return res.status(200).json({
         message:
@@ -224,6 +255,22 @@ export const withdrawToMpesa = async (req, res) => {
       }
     );
 
+
+    //Save the withdrawal with pending status
+    const newWithdrawal = new Withdraw({
+      userId,
+      amount,
+      phone,
+      initiatorId,
+      status:"pending",
+    });
+
+    await newWithdrawal.save();
+    
+
+        
+   
+
     res.status(StatusCodes.CREATED).json({
       status: "success",
       message: "Withdrawal in progress",
@@ -231,6 +278,7 @@ export const withdrawToMpesa = async (req, res) => {
     });
 
     await userGreenBank.save();
+
   } catch (err) {
     Logger.error("Withdrawal Error:", err.message);
 
@@ -256,6 +304,35 @@ export const b2cResultCallback = async (req, res) => {
       TransactionID,
       ReferenceData,
     } = Result;
+
+
+    
+
+   // Find the withdrawal record using OriginatorConversationID
+   const withdrawal = await Withdraw.findOne({
+    initiatorId : OriginatorConversationID,
+  });
+
+  if (!withdrawal) {
+    return res.status(404).json({
+      status: "error",
+      message: "Withdrawal record not found",
+    });
+  }
+
+  if (ResultCode === 0) {
+    // Transaction was successful
+    withdrawal.status = "success";
+    withdrawal.transactionId = TransactionID;
+    withdrawal.conversationId = ConversationID;
+    withdrawal.resultDesc = ResultDesc;
+  } else {
+    // Transaction failed
+    withdrawal.status = "failed";
+    withdrawal.resultDesc = ResultDesc;
+  }
+
+  await withdrawal.save(); // Save the updated status
 
     return res.status(StatusCodes.OK).json({
       message: "Withdrawal processed successfully",
