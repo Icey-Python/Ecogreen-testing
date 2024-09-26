@@ -15,10 +15,7 @@ const greenBankSchema = new Schema({
     type: String,
     default: 'Extra donation points supporting environmental causes',
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
+  
 });
 
 const GreenBank = model('GreenBank', greenBankSchema);
