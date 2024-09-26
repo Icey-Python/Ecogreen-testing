@@ -6,6 +6,7 @@ import { Logger } from 'borgen'
 
 
 
+
 export const createDonation = async (req, res) => {
   try {
     const { pointsDonated, cause, requiredAmount } = req.body;
@@ -69,14 +70,12 @@ export const createDonation = async (req, res) => {
       user.donations+=1
 
       // Add 50% to the GreenBank
-      const greenBank = new GreenBank({
-        user: userId,
-        points: halfPoints,
-        description: "Extra donation points supporting environmental causes",
-      });
-      await greenBank.save();
-    }
+      const greenBank = await GreenBank.findOne({user: userId})
+      greenBank.points += halfPoints
 
+      await greenBank.save()
+
+    }
     // Deduct points from user balance
     user.balance -= pointsDonated;
     await user.save();

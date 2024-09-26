@@ -7,6 +7,7 @@ import { Config } from '../lib/config.js'
 import otp from 'otp-generator'
 import { Resend } from 'resend'
 import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
+import GreenBank from "../models/greenBank.model.js";
 
 
 
@@ -16,8 +17,8 @@ const resend = new Resend(Config.RS_MAIL_KEY)
 // @desc Register user
 export const signUpUser = async (req, res) => {
   try {
-    const { name, email, password, refferalCode } = req.body
-    if (!name || !email || !password) {
+    const { name, email, password, refferalCode,contact } = req.body
+    if (!name || !email || !password || !contact) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'All fields are required',
@@ -44,7 +45,15 @@ export const signUpUser = async (req, res) => {
       email,
       password: hashedPassword,
       refferal: { code: userRefferalCode },
+      contact,
     })
+
+    const greenBank = new GreenBank({
+      user: newUser.id,
+      description: "Extra donation points supporting environmental causes",
+    });
+    await greenBank.save();
+
     // update referree users
     if (refferalCode) {
       const refferalUser = await User.findOne({
