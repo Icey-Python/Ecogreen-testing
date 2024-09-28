@@ -6,6 +6,7 @@ import Squad from '../models/squad.model.js'
 import Admin from '../models/admin.model.js'
 import { Types } from 'mongoose'
 import Comment from '../models/comment.model.js'
+import { uploadImage } from '../util/imageUpload.js' 
 //@ desc Create post
 //@ route POST /api/v1/post/create
 export const createPost = async (req, res) => {
@@ -85,7 +86,10 @@ export const createPost = async (req, res) => {
       squad: squadId,
     })
 
-    if (image) post.image = image
+    if (image) {
+      //TODO: Add image upload
+      uploadImage(req,res,Model= Post, modelName= Post, imageField = "image", docId )
+    }
     if (category) post.category = category
     if (tags) post.tags = tags
     await post.save()
@@ -160,7 +164,9 @@ export const updatePost = async (req, res) => {
     }
     if (title) post.title = title
     if (content) post.content = content
-    if (image) post.image = image
+    if (image) {
+
+    }
     if (category) post.category = category
     if (tags) post.tags = tags
     await post.save()

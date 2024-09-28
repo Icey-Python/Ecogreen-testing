@@ -19,7 +19,13 @@ export const createProduct = async (req, res) => {
       flashSaleStart,
       flashSaleEnd,
     } = req.body;
-
+    if(!name){
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message:"Provide a name for your product",
+        data: null
+      })
+    }
     const product = await Product.create({
       name,
       description,
