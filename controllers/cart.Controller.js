@@ -168,4 +168,63 @@ export const deleteCartItem = async (req, res) => {
       });
     }
   };
-  
+ 
+// @ desc Checkout -> purchase from cart 
+// @ route POST /api/v1/user/cart/checkout
+export const checkout = async (req, res) => {
+  try {
+    const userId = res.locals.userId;
+    const user = await User.findById(userId).populate('cart.product');
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: 'error',
+        message: 'User not found.',
+      });
+    }
+    // Check if the cart is empty
+    if (user.cart.length === 0) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Your cart is empty.',
+      });
+    }
+
+    // Calculate the total cost of items in the cart
+    let totalCost = 0;
+    user.cart.forEach(item => {
+      const product = item.product; 
+      const quantity = item.quantity;
+
+      const productTotal = product.price * quantity;
+      totalCost += productTotal;
+    });
+
+    // Check if the user has enough balance
+    if (user.balance < totalCost) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: `Insufficient balance. You need ${totalCost - user.balance} more to complete the purchase.`,
+      });
+    }
+
+    // Deduct the total cost from the user's balance
+    user.balance -= totalCost;
+
+    // Clear the cart
+    user.cart = [];
+
+    // Save the updated user data
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: `Checkout successful! Total deducted: ${totalCost}`,
+      balance: user.balance,
+      cart: user.cart, // Cart should now be empty
+    });  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred during checkout',
+    });
+  }
+}
