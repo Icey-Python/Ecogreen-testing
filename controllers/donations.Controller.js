@@ -5,7 +5,8 @@ import { StatusCodes } from "http-status-codes";
 import { Logger } from 'borgen'
 
 
-
+// @desc Create donations by a user
+// @route POST /api/v1/donations
 
 export const createDonation = async (req, res) => {
   try {
@@ -78,6 +79,23 @@ export const createDonation = async (req, res) => {
     }
     // Deduct points from user balance
     user.balance -= pointsDonated;
+
+    // Add 10% of donated points to user's balance as donation credits
+    const donationCredit = pointsDonated * 0.1;
+    user.balance += donationCredit;
+
+    // Track donation credits in an array
+    if (!user.donationCredits) {
+      user.donationCredits = [];
+    }
+    user.donationCredits.push({
+      amount: donationCredit,
+      cause,
+      date: new Date(),
+    });
+
+
+
     await user.save();
 
     // Save the donation
@@ -102,7 +120,7 @@ export const createDonation = async (req, res) => {
 
 
 // @desc Get all donations by a user
-// @route GET /api/v1/donations
+// @route GET /api/v1/donations/user/:userId
 export const getAllUserDonations = async (req, res) => {
     try {
       const userId = res.locals.userId; // Authenticated user
