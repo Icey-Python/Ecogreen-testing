@@ -727,7 +727,7 @@ export const sendPoints = async (req, res) => {
     if (amount > user.balance) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
-        message: `Insufficient funds in your account, You need ${amount - user.balance} to perfom this transfer`,
+        message: `Insufficient funds in your account, You need ${amount - user.balance} extra points to perfom this transfer`,
         data: null,
       })
     }
@@ -744,7 +744,8 @@ export const sendPoints = async (req, res) => {
     // perfom transaction
     user.balance -= amount
     receiver.balance += amount
-
+    await user.save()
+    await receiver.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Money transfer action performed succesfully',
