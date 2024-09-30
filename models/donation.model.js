@@ -23,6 +23,15 @@ const donationSchema = new Schema(
       type: String,
       required: true,
     },
+    recurring: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'inactive',
+    },
+    lastDonationDate: { 
+      type: Date, 
+      default: Date.now 
+    },
   },
   { timestamps: true }
 );

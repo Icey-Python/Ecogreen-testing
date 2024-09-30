@@ -10,7 +10,7 @@ import { Logger } from 'borgen'
 
 export const createDonation = async (req, res) => {
   try {
-    const { pointsDonated, cause, requiredAmount } = req.body;
+    const { pointsDonated, cause, requiredAmount,recurring } = req.body;
     const userId = res.locals.userId; 
 
     // Validate the request body
@@ -47,7 +47,8 @@ export const createDonation = async (req, res) => {
         user: userId,
         cause,
         requiredAmount,
-        amountDonated: 0
+        amountDonated: 0,
+        recurring ,
       });
     }
 
@@ -94,9 +95,10 @@ export const createDonation = async (req, res) => {
       date: new Date(),
     });
 
-
-
     await user.save();
+
+    donation.recurring = recurring || 'inactive'; // Set the recurring status
+    donation.lastDonationDate = Date.now(); // Track the last donation date for recurring logic
 
     // Save the donation
     donation.pointsDonated = pointsDonated; // Store the points donated in this transaction
