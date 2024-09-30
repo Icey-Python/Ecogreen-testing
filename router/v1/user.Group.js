@@ -13,6 +13,7 @@ import {
   verifyOtp,
   resetPassword,
   getRefferalCode,
+  sendPoints,
 } from "../../controllers/user.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
@@ -32,4 +33,5 @@ router.put("/reset/password/new", resetPassword);
 router.post("/otp", sendOtp);//2FA
 router.post("/otp/verify", verifyOtp);//2FA 
 router.get("/get/reffer", userAuth, getRefferalCode);
+router.post("/transact/send", userAuth, sendPoints);
 export default router;
