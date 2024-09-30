@@ -102,6 +102,22 @@ const UserSchema = new Schema(
       type: [Number], // Array of numbers: [longitude, latitude
     },
   },
+  productCredits: [
+    {
+      amount: { type: Number },
+      date: { type: Date, default: Date.now },
+      productId: { type: Schema.Types.ObjectId, ref: 'Product' },
+      description: { type: String },
+    },
+  ],
+  donationCredits: [
+    {
+      amount: { type: Number },
+      date: { type: Date, default: Date.now },
+      productId: { type: Schema.Types.ObjectId, ref: 'Donation' },
+      description: { type: String },
+    },
+  ],
   },
   { timestamps: true },
 )

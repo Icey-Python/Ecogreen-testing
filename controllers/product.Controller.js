@@ -298,8 +298,9 @@ export const purchaseProduct = async (req, res) => {
         message: `Insufficient stock. Only ${purchasedProduct.quantity} items are available.`,
       })
     }
-    // deduct the amount from the user balance
-    if (user.balance < quantityPurchased * purchasedProduct.price) {
+    // Check if user has enough balance 
+    const totalCost = quantityPurchased * purchasedProduct.price
+    if (user.balance < totalCost) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Insufficient balance. Please add money to your account.',
@@ -307,9 +308,27 @@ export const purchaseProduct = async (req, res) => {
     }
 
     // deduct the amount from the user balance
-    user.balance -= quantityPurchased * purchasedProduct.price
+    user.balance -= totalCost
     // Deduct the purchased quantity from stock
     purchasedProduct.quantity -= quantityPurchased
+
+
+    // Calculate 10% bonus credit
+    const bonusCredit = totalCost * 0.10;
+
+    // Add the bonus credit to the user's balance
+    user.balance += bonusCredit;
+
+    // Track the credit in the user's credits array
+    user.credits.push({
+      amount: bonusCredit,
+      date: new Date(),
+      productId: purchasedProduct._id,
+      description: `Bonus for purchasing ${purchasedProduct.name}`,
+    });
+
+
+
     await user.save()
     await purchasedProduct.save()
 
@@ -321,6 +340,8 @@ export const purchaseProduct = async (req, res) => {
         name: purchasedProduct.name,
         quantityPurchased,
         remainingStock: purchasedProduct.quantity,
+        bonusCredit,
+        updatedBalance: user.balance,
       },
     })
   } catch (error) {
