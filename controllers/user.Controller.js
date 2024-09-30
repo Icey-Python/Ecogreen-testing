@@ -7,9 +7,7 @@ import { Config } from '../lib/config.js'
 import otp from 'otp-generator'
 import { Resend } from 'resend'
 import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
-import GreenBank from "../models/greenBank.model.js";
-
-
+import GreenBank from '../models/greenBank.model.js'
 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
@@ -17,7 +15,7 @@ const resend = new Resend(Config.RS_MAIL_KEY)
 // @desc Register user
 export const signUpUser = async (req, res) => {
   try {
-    const { name, email, password, refferalCode,contact } = req.body
+    const { name, email, password, refferalCode, contact } = req.body
     if (!name || !email || !password || !contact) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -50,9 +48,9 @@ export const signUpUser = async (req, res) => {
 
     const greenBank = new GreenBank({
       user: newUser.id,
-      description: "Extra donation points supporting environmental causes",
-    });
-    await greenBank.save();
+      description: 'Extra donation points supporting environmental causes',
+    })
+    await greenBank.save()
 
     // update referree users
     if (refferalCode) {
@@ -70,7 +68,6 @@ export const signUpUser = async (req, res) => {
       await refferalUser.save()
     }
 
-    
     let data = await newUser.save()
     // Create jwt
     let token = jwt.sign(
@@ -683,6 +680,81 @@ export const getRefferalCode = async (req, res) => {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while fetching user',
+      data: null,
+    })
+  }
+}
+
+// @ Desc Send Points to other user
+// @ route POST /api/v1/user/points/send
+
+export const sendPoints = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const { amount, recepientId } = req.body
+
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login to perfom this action',
+        data: null,
+      })
+    }
+
+    if (!amount || amount < 1) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Amount cannot be zero',
+        data: null,
+      })
+    }
+    if (!recepientId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'A recepeint is required for this action',
+        data: null,
+      })
+    }
+    //get user balance
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login to perfom this action',
+        data: null,
+      })
+    }
+    if (amount > user.balance) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: `Insufficient funds in your account, You need ${amount - user.balance} to perfom this transfer`,
+        data: null,
+      })
+    }
+    // check if the receiver is valid
+    const receiver = await User.findById(recepientId)
+    if (!receiver) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid receiver Id',
+        data: null,
+      })
+    }
+
+    // perfom transaction
+    user.balance -= amount
+    receiver.balance += amount
+
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Money transfer action performed succesfully',
+      data: null,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occured trying to perfom this transfer',
       data: null,
     })
   }
