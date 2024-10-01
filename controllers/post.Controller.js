@@ -6,13 +6,15 @@ import Squad from '../models/squad.model.js'
 import Admin from '../models/admin.model.js'
 import { Types } from 'mongoose'
 import Comment from '../models/comment.model.js'
-import { uploadImage } from '../util/imageUpload.js' 
+import { uploadImage } from '../util/imageUpload.js'
+
 //@ desc Create post
 //@ route POST /api/v1/post/create
 export const createPost = async (req, res) => {
   try {
     const userId = res.locals.userId
-    const { title, content, image, squadId, category, tags } = req.body
+    const { title, content, squadId, category, tags } = req.body
+    const image = req.file
     if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
@@ -85,20 +87,28 @@ export const createPost = async (req, res) => {
       creator: userId,
       squad: squadId,
     })
-
+    
     if (image) {
-      //TODO: Add image upload
-      uploadImage(req,res,Model= Post, modelName= Post, imageField = "image", docId )
+      uploadImage({
+        req,
+        res,
+        Model: Post,
+        modelName: Post,
+        imageField: 'image',
+        docId: post.id,
+      })
     }
     if (category) post.category = category
     if (tags) post.tags = tags
     await post.save()
+
+
     return res.status(StatusCodes.CREATED).json({
       status: 'success',
       message: 'Post created successfully',
       data: {
         id: post._id,
-        name: post.title
+        name: post.title,
       },
     })
   } catch (error) {
@@ -145,7 +155,9 @@ export const updatePost = async (req, res) => {
   try {
     const postId = req.params.id
     const userId = res.locals.userId
-    const { title, content, image, category, tags } = req.body
+    const { title, content, category, tags } = req.body
+    const image = req.file
+
     const post = await Post.findById(postId)
     if (!post || !userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -165,7 +177,14 @@ export const updatePost = async (req, res) => {
     if (title) post.title = title
     if (content) post.content = content
     if (image) {
-
+      uploadImage({
+        req,
+        res,
+        Model: Post,
+        modelName: Post,
+        imageField: 'image',
+        docId: post.id,
+      })
     }
     if (category) post.category = category
     if (tags) post.tags = tags
@@ -175,8 +194,7 @@ export const updatePost = async (req, res) => {
       message: 'Post updated successfully',
       data: post,
     })
-  }
-  catch (error) {
+  } catch (error) {
     Logger.error({ message: error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
@@ -209,7 +227,10 @@ export const deletePost = async (req, res) => {
 
     const squad = await Squad.findById(post.squad)
 
-    if (!squad.moderators.includes(userId) || userId != String(post.creator || !Admin.findById(userId))) {
+    if (
+      !squad.moderators.includes(userId) ||
+      userId != String(post.creator || !Admin.findById(userId))
+    ) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -296,7 +317,7 @@ export const likePost = async (req, res) => {
       })
     }
     if (post.likes.includes(userId)) {
-      //remove like 
+      //remove like
       post.likes = post.likes.filter((like) => like != userId)
       await post.save()
       return res.status(StatusCodes.OK).json({
@@ -372,7 +393,7 @@ export const commentPost = async (req, res) => {
     })
   }
 }
-//@ desc Delete Comment 
+//@ desc Delete Comment
 //@ route DELETE /api/v1/post/comment/delete/:id
 export const deleteComment = async (req, res) => {
   try {
@@ -399,7 +420,10 @@ export const deleteComment = async (req, res) => {
         data: null,
       })
     }
-    if (!comment.creator.equals(res.locals.userId) || !Admin.findById(res.locals.userId)) {
+    if (
+      !comment.creator.equals(res.locals.userId) ||
+      !Admin.findById(res.locals.userId)
+    ) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -407,7 +431,9 @@ export const deleteComment = async (req, res) => {
       })
     }
     const post = await Post.findById(comment.post)
-    post.comments = post.comments.filter((comment) => !comment.equals(commentId))
+    post.comments = post.comments.filter(
+      (comment) => !comment.equals(commentId),
+    )
     await post.save()
     await Comment.findByIdAndDelete(commentId)
     return res.status(StatusCodes.OK).json({
@@ -478,7 +504,7 @@ export const getAllComments = async (req, res) => {
   }
 }
 
-// @ desc save post 
+// @ desc save post
 // @ route POST /api/v1/post/save/:id
 export const savePost = async (req, res) => {
   try {
@@ -509,8 +535,12 @@ export const savePost = async (req, res) => {
     }
 
     if (post.saves.includes(new Types.ObjectId(userId))) {
-      post.saves = post.saves.filter((id) => id.toString() !== userId.toString())
-      user.saves = user.saves.filter((id) => id.toString() !== postId.toString())
+      post.saves = post.saves.filter(
+        (id) => id.toString() !== userId.toString(),
+      )
+      user.saves = user.saves.filter(
+        (id) => id.toString() !== postId.toString(),
+      )
       await user.save()
       await post.save()
 
@@ -535,8 +565,7 @@ export const savePost = async (req, res) => {
         saves: parseInt(post.saves.length, 10),
       },
     })
-  }
-  catch (error) {
+  } catch (error) {
     Logger.error({ message: error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
@@ -546,7 +575,7 @@ export const savePost = async (req, res) => {
   }
 }
 
-//@ desc share post 
+//@ desc share post
 //@ route POST /api/v1/post/share/:id
 export const sharePost = async (req, res) => {
   try {
@@ -559,7 +588,7 @@ export const sharePost = async (req, res) => {
         data: null,
       })
     }
-    //create a link from server hostname 
+    //create a link from server hostname
     const postLink = `${process.env.BASE_URL}/api/v1/post/share/view/${postId}`
     post.shares = parseInt(post.shares, 10) + 1
     await post.save()
@@ -568,11 +597,10 @@ export const sharePost = async (req, res) => {
       message: 'Post shared successfully',
       data: {
         id: post.id,
-        link: postLink
+        link: postLink,
       },
     })
-  }
-  catch (error) {
+  } catch (error) {
     Logger.error({ message: error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
@@ -582,7 +610,7 @@ export const sharePost = async (req, res) => {
   }
 }
 
-//@ desc view shared post 
+//@ desc view shared post
 //@ route GET /api/v1/post/share/view/:id
 export const getSharedPost = async (req, res) => {
   try {
@@ -600,8 +628,7 @@ export const getSharedPost = async (req, res) => {
       message: 'Post shared successfully',
       data: post,
     })
-  }
-  catch (error) {
+  } catch (error) {
     Logger.error({ message: error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',

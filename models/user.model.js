@@ -22,6 +22,10 @@ const UserSchema = new Schema(
         ref: 'Squad',
       },
     ],
+    image:{
+      type: [String],
+      default: [],
+    },
     saves: [
       {
         type: Schema.Types.ObjectId,

@@ -19,8 +19,8 @@ const ProductSchema = new Schema(
       required: true,
     },
     image: {
-      type: String,
-      default: "",
+      type: [String],
+      default: [],
     },
     isActive: {
       type: Boolean,

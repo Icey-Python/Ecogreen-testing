@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { StatusCodes } from 'http-status-codes';
 import { fileURLToPath } from 'url';
-
+import Logger from 'borgen';
 // Define __filename and __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,7 +31,7 @@ export const uploadImage = async ({
       'image/webp': 'webp',
     };
 
-    const file = req.body.image;
+    const file = req.file;
 
     // Check if file exists
     if (!file) {
@@ -80,21 +80,9 @@ export const uploadImage = async ({
     document[imageField].push(newName);
     await document.save();
 
-    // Send success response
-    return res.status(StatusCodes.CREATED).json({
-      status: 'Created',
-      message: `${modelName} image has been uploaded successfully!`,
-      data: document,
-    });
   } catch (error) {
-    console.error('Error uploading the image:', error);
-    // Ensure that we only send the error response once
-    if (!res.headersSent) {
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        status: 'error',
-        message: 'Error uploading the image.',
-      });
-    }
+    Logger.erro({message:'Error uploading the image: '+ error});
+    return false
   }
 };
 

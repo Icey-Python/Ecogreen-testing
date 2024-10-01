@@ -8,6 +8,7 @@ import otp from 'otp-generator'
 import { Resend } from 'resend'
 import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
 import GreenBank from '../models/greenBank.model.js'
+import { uploadImage } from '../util/imageUpload.js'
 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
@@ -159,12 +160,12 @@ export const loginUser = async (req, res) => {
 }
 
 // @desc Update a user's own account by ID
-// @route PUT /api/v1/users/:id
+// @route PUT /api/v1/user/update
 export const updateUserById = async (req, res) => {
   try {
     const userId = res.locals.userId
-    const { name, email, password } = req.body
-
+    const { name, email, oldPassword, newPassword } = req.body
+    const image = req.file
     // Fetch the user to update
     const user = await User.findById(userId)
     if (!user) {
@@ -179,11 +180,35 @@ export const updateUserById = async (req, res) => {
     if (name) user.name = name
     if (email) user.email = email
 
-    // If password is provided, hash it before saving
-    if (password) {
-      user.password = await bcrypt.hash(password, 10)
+    if (newPassword && !oldPassword) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Old password is required',
+        data: null,
+      })
     }
-
+    // If password is provided, hash it before saving
+    if (newPassword && oldPassword) {
+      const isValidPassword = await bcrypt.compare(oldPassword, user.password)
+      if (!isValidPassword) {
+        return res.status(StatusCodes.UNAUTHORIZED).json({
+          status: 'error',
+          message: 'Invalid old password',
+          data: null,
+        })
+      }
+      user.password = await bcrypt.hash(newPassword, 10)
+    }
+    if (image) {
+      uploadImage({
+        req,
+        res,
+        Model: User,
+        modelName: 'user',
+        imageField: 'image',
+        docId: user.id,
+      })
+    }
     const updatedUser = await user.save()
 
     res.status(StatusCodes.OK).json({

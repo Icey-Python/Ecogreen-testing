@@ -41,8 +41,8 @@ const PostSchema = new Schema(
       default:0
     },
     image: {
-      type: String,
-      default: "",
+      type: [String],
+      default: []
     },
     isActive: {
       type: Boolean,

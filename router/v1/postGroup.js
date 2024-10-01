@@ -14,14 +14,16 @@ import {
   sharePost,
   updatePost,
 } from '../../controllers/post.Controller.js'
+import multer from 'multer'
+const upload = multer()
 
 const router = Router()
 
-router.post('/create', userAuth, createPost)
+router.post('/create', userAuth,upload.single('image'), createPost)
 router.delete('/delete/:id', userAuth, deletePost)
 router.get('/find/one/:id', userAuth, getPost)
 router.get('/find/all', userAuth, getAllPosts)
-router.put('/update/:id', userAuth, updatePost)
+router.put('/update/:id', userAuth,upload.single('image'), updatePost)
 router.put('/like/:id', userAuth, likePost)
 router.put('/comment/:id', userAuth, commentPost)
 router.put('/comment/delete/:id', userAuth, deleteComment)
