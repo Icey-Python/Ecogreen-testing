@@ -1,7 +1,8 @@
 import User from '../models/user.model.js';
-import Product from '../models/product.model.js'; 
+import Product from '../models/product.model.js';
 import { StatusCodes } from 'http-status-codes';
 import { Logger } from 'borgen'
+import Order from '../models/order.model.js';
 
 // @desc Add an item to cart
 // @route POST /api/v1/user/cart/add
@@ -141,34 +142,34 @@ export const getCartItems = async (req, res) => {
 // @desc Delete item from cart
 // @route DELETE /api/v1/user/cart/delete/:productId
 export const deleteCartItem = async (req, res) => {
-    try {
-      const userId = res.locals.userId;
-      const { productId } = req.params;
-  
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(StatusCodes.NOT_FOUND).json({
-          status: 'error',
-          message: 'User not found.',
-        });
-      }
-  
-      user.cart = user.cart.filter((item) => item.product.toString() !== productId);
-      await user.save();
-  
-      res.status(StatusCodes.OK).json({
-        status: 'success',
-        message: 'Item removed from cart successfully.',
-        cart: user.cart,
-      });
-    } catch (error) {
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+  try {
+    const userId = res.locals.userId;
+    const { productId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
         status: 'error',
-        message: 'An error occurred while removing the item from the cart.',
+        message: 'User not found.',
       });
     }
-  };
- 
+
+    user.cart = user.cart.filter((item) => item.product.toString() !== productId);
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Item removed from cart successfully.',
+      cart: user.cart,
+    });
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while removing the item from the cart.',
+    });
+  }
+};
+
 // @ desc Checkout -> purchase from cart 
 // @ route POST /api/v1/user/cart/checkout
 export const checkout = async (req, res) => {
@@ -192,7 +193,7 @@ export const checkout = async (req, res) => {
     // Calculate the total cost of items in the cart
     let totalCost = 0;
     user.cart.forEach(item => {
-      const product = item.product; 
+      const product = item.product;
       const quantity = item.quantity;
 
       const productTotal = product.price * quantity;
@@ -209,7 +210,14 @@ export const checkout = async (req, res) => {
 
     // Deduct the total cost from the user's balance
     user.balance -= totalCost;
-
+    //create new Order
+    const order = new Order({
+      // list of all seller ids from the products
+      sellerId: user.cart.map(item => item.product.sellerId),
+      buyerId: user._id,
+      products: user.cart.map(item => item.product),
+      amount: totalCost,
+    })
     // Clear the cart
     user.cart = [];
 
@@ -220,11 +228,55 @@ export const checkout = async (req, res) => {
       status: 'success',
       message: `Checkout successful! Total deducted: ${totalCost}`,
       balance: user.balance,
-      cart: user.cart, // Cart should now be empty
-    });  } catch (error) {
+      order: order.id, // Cart should now be empty
+    });
+  } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred during checkout',
+    });
+  }
+}
+
+//@ desc retrieve shared order by id: 
+//@ route GET /api/v1/cart/shared/:orderId
+export const getSharedOrder = async (req, res) => {
+  try {
+    const userId = res.locals.userId;
+    const { orderId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login and try again',
+        data: null,
+      });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Order Id invalid',
+        data: null,
+      });
+    }
+
+    // update user cart with the products inside shared order 
+    user.cart = [...user.cart, ...order.products.filter(product => !user.cart.some(cartProduct => cartProduct.product.toString() === product._id.toString()))];
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Shared order retrieved successfully',
+      data: order,
+    });
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while fetching shared order',
+      data: null,
     });
   }
 }

@@ -3,6 +3,7 @@ import User from '../models/user.model.js'
 import { Logger } from 'borgen'
 import Product from '../models/product.model.js'
 import { uploadImage } from '../util/imageUpload.js'
+import Order from '../models/order.model.js'
 //@desc Create product
 //@route POST /api/v1/product/create
 export const createProduct = async (req, res) => {
@@ -326,8 +327,14 @@ export const purchaseProduct = async (req, res) => {
       productId: purchasedProduct._id,
       description: `Bonus for purchasing ${purchasedProduct.name}`,
     });
-
-
+    
+    // create new order 
+    const order = new Order({
+      sellerId: [purchasedProduct.seller],
+      buyerId: userId,
+      products: [purchasedProduct._id],
+      amount: purchasedProduct.price,
+    })
 
     await user.save()
     await purchasedProduct.save()
@@ -342,6 +349,7 @@ export const purchaseProduct = async (req, res) => {
         remainingStock: purchasedProduct.quantity,
         bonusCredit,
         updatedBalance: user.balance,
+        order
       },
     })
   } catch (error) {

@@ -2,10 +2,10 @@ import { model, Schema} from "mongoose";
 //seller id, buyer id, product id, amount, status
 const OrderSchema = new Schema(
   {
-    sellerId: {
+    sellerId: [{
       type: Schema.Types.ObjectId,
       ref: "User",
-    },
+    }],
     buyerId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -16,11 +16,6 @@ const OrderSchema = new Schema(
     }],
     amount: {
       type: Number,
-    },
-    status: {
-      type: String,
-      enum: ["pending", "completed", "cancelled"],
-      default: "pending",
     },
   },
   { timestamps: true }
