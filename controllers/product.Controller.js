@@ -8,10 +8,10 @@ import { uploadImage } from '../util/imageUpload.js'
 export const createProduct = async (req, res) => {
   try {
     const userId = res.locals.userId
+    const image = req.file
     const {
       name,
       description,
-      image,
       price,
       quantity,
       category,
@@ -67,7 +67,7 @@ export const createProduct = async (req, res) => {
         Model: Product,
         modelName: 'product',
         imageField: 'image',
-        docId: product._id,
+        docId: product.id,
       })
     }
     await product.save()
@@ -144,8 +144,8 @@ export const updateProduct = async (req, res) => {
   try {
     const userId = res.locals.userId
     let productId = req.params.id
-
-    const { name, description, price, image } = req.body
+    const image = req.file
+    const { name, description, price} = req.body
 
     let product = await Product.findById(productId)
     if (!product) {
@@ -170,10 +170,10 @@ export const updateProduct = async (req, res) => {
       uploadImage(
         req,
         res,
-        (Model = Product),
-        (modelName = 'product'),
-        (imageField = 'image'),
-        (docId = product._id),
+        Model = Product,
+        modelName = 'product',
+        imageField = 'image',
+        docId = product.id,
       )
     }
 
