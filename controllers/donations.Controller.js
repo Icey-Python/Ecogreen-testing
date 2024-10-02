@@ -69,7 +69,10 @@ export const createDonation = async (req, res) => {
 
       // Update the donation with 50% of the extra points
       donation.amountDonated += halfPoints;
-      user.donations+=1
+      
+
+    
+
 
       // Add 50% to the GreenBank
       const greenBank = await GreenBank.findOne({user: userId})
@@ -95,6 +98,30 @@ export const createDonation = async (req, res) => {
       date: new Date(),
     });
 
+          // Update total points donated by the user
+      user.totalPointsDonated = (user.totalPointsDonated || 0) + pointsDonated;
+
+      // Determine the user's donation tier based on total points donated
+      let newDonationTier;
+      if (user.totalPointsDonated >= 750001) {
+        newDonationTier = "Diamond";
+      } else if (user.totalPointsDonated >= 500001) {
+        newDonationTier = "Platinum";
+      } else if (user.totalPointsDonated >= 150001) {
+        newDonationTier = "Gold";
+      } else if (user.totalPointsDonated >= 50001) {
+        newDonationTier = "Titanium";
+      } else if (user.totalPointsDonated >= 10001) {
+        newDonationTier = "Silver";
+      } else if (user.totalPointsDonated >= 1000) {
+        newDonationTier = "Bronze";
+      }
+
+      // Update the user's donation tier if it has changed
+      if (user.donationTier !== newDonationTier) {
+        user.donationTier = newDonationTier;
+      }
+      user.donations = (user.donations || 0) + 1;
     await user.save();
 
     donation.recurring = recurring || 'inactive'; // Set the recurring status
