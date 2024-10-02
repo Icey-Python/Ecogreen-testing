@@ -9,6 +9,10 @@ import { Resend } from 'resend'
 import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
 import GreenBank from '../models/greenBank.model.js'
 import { uploadImage } from '../util/imageUpload.js'
+import Donation from '../models/donation.model.js'
+import Deposit from '../models/deposit.model.js'
+import Withdraw from '../models/withdraw.model.js'
+import Transaction from '../models/transaction.model.js'
 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
@@ -771,6 +775,72 @@ export const sendPoints = async (req, res) => {
     receiver.balance += amount
     await user.save()
     await receiver.save()
+
+    // create new Transaction 
+    const transaction = new Transaction({
+      sender: userId,
+      receiver: recepientId,
+      amount,
+    })
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Money transfer action performed succesfully',
+      data: null,
+    })
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occured trying to perfom this transfer',
+      data: null,
+    })
+  }
+}
+// @ desc move points from user balance to greenbank 
+// @ route POST /api/v1/user/points/move 
+export const movePoints = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const { amount } = req.body
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login to perfom this action',
+        data: null,
+      })
+    }
+    if (!amount || amount < 1) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Amount cannot be zero',
+        data: null,
+      })
+    }
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login to perfom this action',
+        data: null,
+      })
+    }
+    if (amount > user.balance) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: `Insufficient funds in your account, You need ${amount - user.balance} extra points to perfom this transfer`,
+        data: null,
+      })
+    }
+    user.balance -= amount
+    user.greenbank += amount
+    //create transaction 
+    const transaction = new Transaction({
+      sender: userId,
+      receiver:userId,
+      amount,
+      description: "Move from balance to greenbank"
+    })
+    await user.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Money transfer action performed succesfully',
@@ -806,13 +876,26 @@ export const getTransactionHistory = async (req, res) => {
         data: null,
       })
     }
-    
-    const transactions = user.transactions
+    //get orders with user id 
+    const purchases = Order.find({ buyerId: user.id }).populate('products.product')
+    //get donations with user id 
+    const donations = Donation.find({ user: user.id })
+    // get deposits with user id
+    const deposits = Deposit.find({ userId: user.id })
+    // get withdrawals
+    const withdrawals = Withdraw.find({ userId: user.id })
+
+    //get transactions with recepient id or user id 
+    const transactions = Transaction.find({ $or: [{ sender: user.id }, { receiver: user.id }] })
     res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transaction history fetched successfully',
       data: {
-        transactions
+        purchases,
+        donations,
+        deposits,
+        withdrawals,
+        transactions,
       },
     })
 }

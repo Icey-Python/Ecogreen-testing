@@ -23,7 +23,9 @@ const depositSchema = new Schema({
     enum: ['pending', 'completed', 'failed'],
     default: 'pending',
   },
-  
+  transactionDate:{
+    type: Date,
+  }  
   
 },
     { timestamps: true },

@@ -13,7 +13,7 @@ const greenBankSchema = new Schema({
   },
   description: {
     type: String,
-    default: 'Extra donation points supporting environmental causes',
+    default: 'Extra donation points to support environmental causes',
   },
   
 });

@@ -1,41 +1,26 @@
-import { Schema, model } from "mongoose";
+import { Schema, model } from 'mongoose'
 
 const transactionSchema = new Schema({
-  initiator: {
+  sender: {
     type: Schema.Types.ObjectId,
+    required: true,
     ref: 'User',
-    required: true
   },
-  reference: {
+  receiver: {
     type: Schema.Types.ObjectId,
-    refPath: 'referenceModel',  // Dynamically refer to the appropriate model
-    required: true
-  },
-  referenceModel: {
-    type: String,
-    enum: ['Product', 'Deposit', 'Withdraw', 'Donation'],  // Add all relevant models
-    required: function() {
-      return ['purchase', 'deposit', 'withdraw', 'donate'].includes(this.type);
-    }
-  },
-  type: {
-    type: String,
-    enum: ['deposit', 'withdraw', 'purchase', 'donate'],
-    required: true
+    required: true,
+    ref: 'User',
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
   },
-  status: {
+  description:{
     type: String,
-    enum: ['pending', 'completed', 'failed'],
-    default: 'pending'
+    required: true,
+    default: "Transaction"
   }
-}, {
-  timestamps: true
-});
+})
 
-const Transaction = model('Transaction', transactionSchema);
-export default Transaction;
-
+const Transaction = model('Transaction', transactionSchema)
+export default Transaction
