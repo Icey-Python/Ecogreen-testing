@@ -8,6 +8,7 @@ import connectDB from './database/connect.js';
 import router from './router/router.js';
 import http from 'http';
 import { ExpressPeerServer } from "peer";
+import cron from './lib/cronjob.js';
 
 const app = express();
 const server = http.createServer(app);
