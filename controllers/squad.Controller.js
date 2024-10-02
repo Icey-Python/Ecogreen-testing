@@ -6,6 +6,9 @@ import { Types, ObjectId } from 'mongoose'
 import { isValidObjectId } from 'mongoose'
 import Moderator from '../models/moderator.model.js'
 import CarbonCalculator from '../models/carbonCalculator.model.js'
+import { Resend } from 'resend'
+import { Config } from '../lib/config.js'
+import { notificationEmail } from '../lib/email-templates/otpEmail.js'
 // @desc Create new squad
 // @route POST /api/v1/squad/create
 export const createSquad = async (req, res) => {
@@ -132,7 +135,25 @@ export const requestToJoinSquad = async (req, res) => {
 
     squad.requestedMembers.push(user._id)
     await squad.save()
+    // send email with resend 
 
+    //@init Resend
+    const resend = new Resend(Config.RS_MAIL_KEY)
+
+    const { data, error } = await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>',
+      to: ['ndungusamkelly5@gmail.com'],
+      subject: 'New Join Squad Request',
+      html: notificationEmail(squad.name, squad.requestedMembers),
+    })
+    if (error) {
+      Logger.error({ message: error.message })
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: 'error',
+        message: 'An error occurred while sending reset details to your email',
+        data: null,
+      })
+    }
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Join squad request sent successfully',
