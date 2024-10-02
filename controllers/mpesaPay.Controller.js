@@ -6,7 +6,7 @@ import { timestamp } from "../util/timestamp.js";
 import { StatusCodes } from "http-status-codes";
 import crypto from "crypto";
 import User from "../models/user.model.js";
-import Withdraw  from "../models/withdraw.model.js";
+import Withdraw from "../models/withdraw.model.js";
 import Deposit from "../models/deposit.model.js";
 import Transaction from "../models/transaction.model.js";
 
@@ -42,13 +42,13 @@ export const stkPush = async (req, res) => {
     greenBankAccount.points += greenBankDeduction;
     await greenBankAccount.save();
 
-    //create transaction 
+    //create transaction
     const transaction = new Transaction({
       sender: userId,
       receiver: userId,
       amount: greenBankDeduction,
-      description: 'Mpesa deposit deduction to greenbank',
-    })
+      description: "Mpesa deposit deduction to greenbank",
+    });
     // Update user’s points
     userAccount.balance += netAmountToUser;
     await userAccount.save();
@@ -101,10 +101,9 @@ export const stkPush = async (req, res) => {
       phone,
       transactionId: checkoutRequestID, // Save transaction ID for future reference
     });
-    
-    await newDeposit.save();
-    // create Transaction 
 
+    await newDeposit.save();
+    // create Transaction
 
     res.status(HttpStatusCode.Created).json({
       status: "success",
@@ -139,16 +138,15 @@ export const callback = async (req, res) => {
     const callbackMetadata = stkCallback.CallbackMetadata;
     console.log(resultCode);
 
+    // Find the corresponding deposit record using CheckoutRequestID
+    const deposit = await Deposit.findOne({ transactionId: checkoutRequestID });
 
-     // Find the corresponding deposit record using CheckoutRequestID
-     const deposit = await Deposit.findOne({ transactionId: checkoutRequestID });
-
-     if (!deposit) {
-       return res.status(404).json({
-         status: "error",
-         message: "Deposit record not found",
-       });
-     }
+    if (!deposit) {
+      return res.status(404).json({
+        status: "error",
+        message: "Deposit record not found",
+      });
+    }
 
     if (resultCode === 0) {
       const amount = callbackMetadata.Item.find(
@@ -171,7 +169,6 @@ export const callback = async (req, res) => {
       deposit.mpesaReceiptNumber = mpesaReceiptNumber; // Store receipt number for reference
       deposit.transactionDate = transaction_date;
       await deposit.save();
-      
 
       return res.status(200).json({
         message:
@@ -193,8 +190,6 @@ export const callback = async (req, res) => {
   }
 };
 
-
-
 const generateOriginatorConversationID = () => {
   return crypto.randomUUID();
 };
@@ -203,14 +198,14 @@ const generateOriginatorConversationID = () => {
 export const withdrawToMpesa = async (req, res) => {
   try {
     const { phone, amount } = req.body;
-    if(!phone){
+    if (!phone) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: "error",
         message: "Invalid phone number",
         data: null,
       });
     }
-    if(!amount){
+    if (!amount) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: "error",
         message: "Please provide a valid amount",
@@ -224,6 +219,18 @@ export const withdrawToMpesa = async (req, res) => {
     const INITIATOR_PASSWORD = "Safaricom999!*!";
     const B2CSHORT_CODE = "600998";
 
+    // Check if the current day is Friday
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+
+    if (dayOfWeek !== 5) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Withdrawals are only allowed on Fridays",
+        data: null,
+      });
+    }
+
     // Check the user's GreenBank balance
     const userGreenBank = await GreenBank.findOne({ user: userId });
     console.log(userGreenBank.points, "|", amount);
@@ -236,13 +243,18 @@ export const withdrawToMpesa = async (req, res) => {
         },
       });
     }
-    const amountInPts = (amount * 100) / 10 ;
+
+    // Calculate 70% for the user and 30% for the system
+    const userAmount = (70 / 100) * amount;
+    const systemAmount = (30 / 100) * amount;
+
+    const amountInPts = (amount * 100) / 10;
     // Deduct the amount from the GreenBank balance
     userGreenBank.points -= amountInPts;
 
     // Mpesa transaction details
     const CALLBACK_URL = process.env.CALLBACK_URL;
-    const initiatorId = generateOriginatorConversationID()
+    const initiatorId = generateOriginatorConversationID();
 
     const payload = {
       OriginatorConversationID: initiatorId,
@@ -268,20 +280,18 @@ export const withdrawToMpesa = async (req, res) => {
       }
     );
 
-
     //Save the withdrawal with pending status
     const newWithdrawal = new Withdraw({
       userId,
-      amount,
+      amount: userAmount,
+      systemAmount: systemAmount,
       phone,
       initiatorId,
-      status:"pending",
+      status: "pending",
     });
 
     await newWithdrawal.save();
     
-        
-   
 
     res.status(StatusCodes.CREATED).json({
       status: "success",
@@ -290,7 +300,6 @@ export const withdrawToMpesa = async (req, res) => {
     });
 
     await userGreenBank.save();
-
   } catch (err) {
     Logger.error("Withdrawal Error:", err.message);
 
@@ -317,34 +326,31 @@ export const b2cResultCallback = async (req, res) => {
       ReferenceData,
     } = Result;
 
-
-    
-
-   // Find the withdrawal record using OriginatorConversationID
-   const withdrawal = await Withdraw.findOne({
-    initiatorId : OriginatorConversationID,
-  });
-
-  if (!withdrawal) {
-    return res.status(404).json({
-      status: "error",
-      message: "Withdrawal record not found",
+    // Find the withdrawal record using OriginatorConversationID
+    const withdrawal = await Withdraw.findOne({
+      initiatorId: OriginatorConversationID,
     });
-  }
 
-  if (ResultCode === 0) {
-    // Transaction was successful
-    withdrawal.status = "success";
-    withdrawal.transactionId = TransactionID;
-    withdrawal.conversationId = ConversationID;
-    withdrawal.resultDesc = ResultDesc;
-  } else {
-    // Transaction failed
-    withdrawal.status = "failed";
-    withdrawal.resultDesc = ResultDesc;
-  }
+    if (!withdrawal) {
+      return res.status(404).json({
+        status: "error",
+        message: "Withdrawal record not found",
+      });
+    }
 
-  await withdrawal.save(); // Save the updated status
+    if (ResultCode === 0) {
+      // Transaction was successful
+      withdrawal.status = "success";
+      withdrawal.transactionId = TransactionID;
+      withdrawal.conversationId = ConversationID;
+      withdrawal.resultDesc = ResultDesc;
+    } else {
+      // Transaction failed
+      withdrawal.status = "failed";
+      withdrawal.resultDesc = ResultDesc;
+    }
+
+    await withdrawal.save(); // Save the updated status
 
     return res.status(StatusCodes.OK).json({
       message: "Withdrawal processed successfully",

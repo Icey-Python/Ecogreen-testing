@@ -10,6 +10,10 @@ const withdrawSchema = new Schema({
     type: Number,
     required: true,
   },
+  systemAmount: {
+     type: Number, 
+     required: true, 
+    },
   phone: {
     type: String,
     required: true,
