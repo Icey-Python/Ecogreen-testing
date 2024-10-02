@@ -16,6 +16,7 @@ import shopGroup from "./shopGroup.js";
 import activityGroup from "./activityGroup.js";
 import mpesaPayGroup from "./mpesaPayGroup.js";
 
+
 const router = Router()
 
 // Routes
@@ -35,5 +36,8 @@ router.use("/greenBank", greenBankGroup);
 router.use("/activity", activityGroup);
 router.use("/mpesaPay", mpesaPayGroup);
 router.use("/shop", shopGroup);
+
+
+
 
 export default router
