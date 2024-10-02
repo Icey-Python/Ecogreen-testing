@@ -336,6 +336,18 @@ export const addToCart = async (req, res) => {
 };
 
 
+
+
+// Function to generate a promo code
+const generatePromoCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let promoCode = '';
+  for (let i = 0; i < 8; i++) {
+    promoCode += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return promoCode;
+};
+
 //@desc Purchase product
 //@route POST  /api/v1/product/purchase
 
@@ -421,6 +433,17 @@ export const purchaseProduct = async (req, res) => {
     // Update total points spent by the user
     user.totalPointsSpent = (user.totalPointsSpent || 0) + totalCost;
 
+
+     // Increment the purchase count
+     user.purchases = (user.purchases || 0) + 1;
+
+     // Check if the user is eligible for a promo code
+     if (user.purchases % 5 === 0) {
+       // Generate and assign a promo code
+       const promoCode = generatePromoCode(); // Function to generate a promo code
+       user.promoCode = promoCode; // Assign the promo code to the user
+     }
+
      // Define the maximum thresholds for each tier
      const tierThresholds = {
       Sprout: 6,
@@ -462,6 +485,15 @@ export const purchaseProduct = async (req, res) => {
     purchasedProduct.purchaseCount =
       (purchasedProduct.purchaseCount || 0) + quantityPurchased;
 
+
+    // Check if the user is eligible for a promo code
+    if (user.purchases % 5 === 0) {
+      // Generate and assign a promo code
+      const promoCode = generatePromoCode(); // Function to generate a promo code
+      user.promoCode = promoCode; // Assign the promo code to the user
+    }
+
+
     // create new order
     const order = new Order({
       sellerId: [purchasedProduct.seller],
@@ -485,6 +517,7 @@ export const purchaseProduct = async (req, res) => {
         bonusCredit,
         updatedBalance: user.balance,
         newTier: user.Tier,
+        promoCode: user.promoCode || null,
         order,
       },
     });
