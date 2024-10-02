@@ -19,14 +19,29 @@ export const createSquad = async (req, res) => {
       moderators -> optional []
      }
      */
-    const { name, description, members,moderators} = req.body
+    const { name, description, members, moderators } = req.body
     const creatorId = res.locals.userId
+    if(!creatorId){
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Please Login and try again',
+        data: null,
+      })
+    }
     const user = await User.findById(creatorId)
-
+    const SQUAD_CREATION_FEE = 2500
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Please Login and try again',
+        data: null,
+      })
+    }
+    //check if user balance is above SQUAD_CREATION_FEE points to create a squad 
+    if (user.balance < SQUAD_CREATION_FEE) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: `Insufficient balance,You need ${SQUAD_CREATION_FEE - user.balance} points to create a squad. Please top up your account and try again`,
         data: null,
       })
     }
@@ -38,21 +53,22 @@ export const createSquad = async (req, res) => {
       admin: user._id,
       moderators: moderators ? [creatorId, ...moderators] : [creatorId],
     })
-    if(moderators){ 
-     moderators.forEach(async (moderator) => {
-      newSquad.members.push(new Types.ObjectId(moderator))
-      const moderatorInfo = await User.findById(moderator)
-      moderatorInfo.squads.push(newSquad._id)
-      await moderatorInfo.save()
-      let newModerator = new Moderator({
-        moderatorId: new Types.ObjectId(moderator),
-        squadId: newSquad._id,
-        role: 'mod-members',
+    if (moderators) {
+      moderators.forEach(async (moderator) => {
+        newSquad.members.push(new Types.ObjectId(moderator))
+        const moderatorInfo = await User.findById(moderator)
+        moderatorInfo.squads.push(newSquad._id)
+        await moderatorInfo.save()
+        let newModerator = new Moderator({
+          moderatorId: new Types.ObjectId(moderator),
+          squadId: newSquad._id,
+          role: 'mod-members',
+        })
+        await newModerator.save()
       })
-      await newModerator.save()
-    })
     }
     user.squads.push(newSquad._id)
+    user.balance = user.balance - SQUAD_CREATION_FEE
     await user.save()
 
     let data = await newSquad.save()
@@ -416,7 +432,7 @@ export const approveMember = async (req, res) => {
         data: null,
       })
     }
-    if(!requestedMemberId){
+    if (!requestedMemberId) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'User Id is required',
@@ -440,8 +456,8 @@ export const approveMember = async (req, res) => {
         data: null,
       })
     }
-    
-  const requestedMember = await User.findById(requestedMemberId)
+
+    const requestedMember = await User.findById(requestedMemberId)
     if (!requestedMember) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -449,15 +465,15 @@ export const approveMember = async (req, res) => {
         data: null,
       })
     }
-    const moderator = await Moderator.find({squadId: squadId, moderatorId: userId})
-    if (userId != squad.admin || !squad.moderators.includes(userId) || moderator.role != "mod-members"){
+    const moderator = await Moderator.find({ squadId: squadId, moderatorId: userId })
+    if (userId != squad.admin || !squad.moderators.includes(userId) || moderator.role != "mod-members") {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
         data: null,
       })
     }
-    if(!squad.requestedMembers.includes(requestedMemberId)){
+    if (!squad.requestedMembers.includes(requestedMemberId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'User did not requested to join the squad',
@@ -465,7 +481,7 @@ export const approveMember = async (req, res) => {
       })
     }
     if (squad.members.includes(requestedMemberId)) {
-    return res.status(StatusCodes.CONFLICT).json({
+      return res.status(StatusCodes.CONFLICT).json({
         status: 'error',
         message: 'Member already in the squad',
         data: null,
@@ -474,7 +490,7 @@ export const approveMember = async (req, res) => {
     squad.requestedMembers = squad.requestedMembers.filter(
       (member) => member.toString() !== userId,
     )
-    
+
     requestedMember.squads.push(new Types.ObjectId(squadId))
     await requestedMember.save()
     squad.members.push(new Types.ObjectId(requestedMemberId))
@@ -528,7 +544,7 @@ export const removeMember = async (req, res) => {
 
     const squad = await Squad.findById(squadId)
     const member = await User.findById(memberId)
-    if(!member){
+    if (!member) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Invalid member Id',
@@ -543,8 +559,8 @@ export const removeMember = async (req, res) => {
       })
     }
 
-    const moderator = await Moderator.find({squadId: squadId, moderatorId: userId})
-    if (userId != squad.admin|| !squad.moderators.includes(userId) || moderator.role != "mod-members"){ 
+    const moderator = await Moderator.find({ squadId: squadId, moderatorId: userId })
+    if (userId != squad.admin || !squad.moderators.includes(userId) || moderator.role != "mod-members") {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -648,7 +664,7 @@ export const addModeratorToSquad = async (req, res) => {
         data: null,
       })
     }
-    if(!squad.members.includes(moderatorId)){
+    if (!squad.members.includes(moderatorId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Moderator must be part of the squad',
@@ -713,7 +729,7 @@ export const updateModeratorRole = async (req, res) => {
         data: null,
       })
     }
-    const moderator = await Moderator.findOne({moderatorId:moderatorId, squadId:squadId})
+    const moderator = await Moderator.findOne({ moderatorId: moderatorId, squadId: squadId })
     if (!moderator) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -745,7 +761,7 @@ export const updateModeratorRole = async (req, res) => {
       })
     }
     const moderatorRoles = ['mod-members', 'mod-post']
-    if(role && !moderatorRoles.includes(role)){
+    if (role && !moderatorRoles.includes(role)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Invalid role [mod-members,mod-post]',
@@ -797,7 +813,7 @@ export const deleteModerator = async (req, res) => {
         data: null,
       })
     }
-    const moderator = await Moderator.findOne({moderatorId:moderatorId, squadId:squadId})
+    const moderator = await Moderator.findOne({ moderatorId: moderatorId, squadId: squadId })
     if (!moderator) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -875,8 +891,8 @@ export const getAllModerators = async (req, res) => {
       })
     }
 
-  
-    const moderators = await Moderator.find({squadId:squadId})
+
+    const moderators = await Moderator.find({ squadId: squadId })
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Moderators fetched successfully',
@@ -898,7 +914,7 @@ export const updatePercentage = async (req, res) => {
   try {
     const userId = res.locals.userId
     const squadId = req.params.id
-    const {percentage} = req.body
+    const { percentage } = req.body
     if (!squadId) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
@@ -946,7 +962,7 @@ export const updatePercentage = async (req, res) => {
         name: squad.name,
         percentageAchieved: squad.percentageAchieved
       },
-    })  
+    })
   } catch (error) {
     Logger.error({ message: error })
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -1072,7 +1088,7 @@ export const getCarbon = async (req, res) => {
       })
     }
     const carbonData = CarbonCalculator.findById(squad.carbonCalculatorData);
-    if(!carbonData) {
+    if (!carbonData) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Invalid Carbon Calculator Id',
@@ -1119,7 +1135,7 @@ export const getAggrgatedCarbon = async (req, res) => {
       })
     }
     const carbonCalculators = await CarbonCalculator.find({
-      _id: { $in: squads},
+      _id: { $in: squads },
     });
     return res.status(StatusCodes.OK).json({
       status: 'success',
@@ -1158,7 +1174,7 @@ export const upsertCarbonCalculator = async (req, res) => {
         threshold,
         badgeEarned,
       },
-      { 
+      {
         new: true,      // Return the updated document
         upsert: true,   // Create a new document if it doesn't exist
         setDefaultsOnInsert: true, // Apply default values when creating a new document
