@@ -70,6 +70,16 @@ export const signUpUser = async (req, res) => {
         })
       }
       refferalUser.refferal.refferedUsers.push(newUser._id)
+      // 10 reffeals = 400 points
+      // 15 refferals =500 points
+      // 20 refferals = pizza award
+      if(refferalUser.refferal.refferedUsers.length > 20 && refferalUser.refferal.awardEarned != "Pizza!"){
+        refferalUser.refferal.awardEarned = "Pizza!"
+      }else if(refferalUser.refferal.refferedUsers.length > 15 && refferalUser.refferal.totalEarned < 500){
+        refferalUser.points += 500
+      }else if(refferalUser.refferal.refferedUsers.length > 10 && refferalUser.refferal.totalEarned < 400){
+        refferalUser.points += 400
+      }
       await refferalUser.save()
     }
 
