@@ -141,6 +141,11 @@ const UserSchema = new Schema(
       enum: ['Bronze', 'Silver', 'Titanium', 'Gold', 'Platinum', 'Diamond'],
       default: 'Bronze',
     },
+    notifications:{
+      type: [Schema.Types.ObjectId],
+      ref: 'Notification',
+      default: [],
+    }
   },
   { timestamps: true },
 )
