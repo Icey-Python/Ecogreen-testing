@@ -11,6 +11,7 @@ import {
     getFlashSales,
     getRecommendedProducts,
     getMostlyPurchasedProducts,
+    addToCart,
 } from "../../controllers/product.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { userAdminAuth } from "../../middleware/userAdminAuth.js";
@@ -29,6 +30,7 @@ router.get("/latest",userAuth, getLatestProducts );
 router.get("/flash-sales",userAuth, getFlashSales);
 router.get("/recommended/:category",userAuth, getRecommendedProducts);
 router.get("/most-purchased",userAuth, getMostlyPurchasedProducts);
+router.post("/add-to-cart/:id" , userAuth , addToCart)
 
 
 export default router;

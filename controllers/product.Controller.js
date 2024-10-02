@@ -250,19 +250,21 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-//@desc Purchase product
-//@route POST  /api/v1/product/purchase
 
-export const purchaseProduct = async (req, res) => {
+//@desc Add product to cart
+//@route POST  /api/v1/product/add-to-cart
+
+export const addToCart = async (req, res) => {
   try {
     const productId = req.params.id;
-    const userId = res.locals.userId; // Assuming userId is passed via auth middleware
-    const { name, quantityPurchased } = req.body; // Expecting productId and quantity in the request body
+    const userId = res.locals.userId; 
+    const { quantity } = req.body; 
+   
 
     if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: "error",
-        message: "Please login to perfom this action",
+        message: "Please login to perform this action",
         data: null,
       });
     }
@@ -271,7 +273,91 @@ export const purchaseProduct = async (req, res) => {
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: "error",
-        message: "Please login to perfom this action",
+        message: "Please login to perform this action",
+        data: null,
+      });
+    }
+    // Validate the request
+    if (!productId || !quantity) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Please provide a valid product ID and quantity.",
+      });
+    }
+
+    
+
+    // Find the product
+    const product = await Product.findById(productId);
+    if (!productId) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message: "Product not found.",
+      });
+    }
+
+    // Check if enough stock is available
+    if (product.quantity < quantity) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: `Insufficient stock. Only ${product.quantity} items are available.`,
+      });
+    }
+
+    // Check if product already exists in the cart
+    const productInCart = user.cart.find((item) => item.product.toString() === productId);
+
+    if (productInCart) {
+      // If the product is already in the cart, update the quantity
+      productInCart.quantity += quantity;
+    } else {
+      // Add new product to the cart
+      user.cart.push({
+        product: productId,
+        quantity,
+      });
+    }
+
+    // Save the user with updated cart
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Product added to cart successfully.",
+      data: user.cart, // Returning updated cart
+    });
+  } catch (error) {
+    Logger.error({ message: error.message });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while adding the product to the cart.",
+    });
+  }
+};
+
+
+//@desc Purchase product
+//@route POST  /api/v1/product/purchase
+
+export const purchaseProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const userId = res.locals.userId; 
+    const { name, quantityPurchased } = req.body; 
+
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "Please login to perform this action",
+        data: null,
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "Please login to perform this action",
         data: null,
       });
     }
@@ -485,3 +571,4 @@ export const getMostlyPurchasedProducts = async (req, res) => {
     });
   }
 };
+
