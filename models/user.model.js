@@ -141,6 +141,21 @@ const UserSchema = new Schema(
       enum: ['Bronze', 'Silver', 'Titanium', 'Gold', 'Platinum', 'Diamond'],
       default: 'Bronze',
     },
+    donationTierEntries: {
+      Bronze: { type: Number, default: 0 },
+      Silver: { type: Number, default: 0 },
+      Titanium: { type: Number, default: 0 },
+      Gold: { type: Number, default: 0 },
+      Platinum: { type: Number, default: 0 },
+      Diamond: { type: Number, default: 0 },
+    },
+    purchaseTierEntries: {
+      Sprout: { type: Number, default: 0, },
+      Blossom: { type: Number, default: 0, },
+      Canopy: { type: Number, default: 0, },
+      Ecosystem: { type: Number, default: 0, },
+      Champion: { type: Number, default: 0, },
+    },
   },
   { timestamps: true },
 )
