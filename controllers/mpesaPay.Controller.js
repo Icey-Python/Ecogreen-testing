@@ -8,6 +8,7 @@ import crypto from "crypto";
 import User from "../models/user.model.js";
 import Withdraw  from "../models/withdraw.model.js";
 import Deposit from "../models/deposit.model.js";
+import Transaction from "../models/transaction.model.js";
 
 // Mpesa STK push
 // @route POST /api/v1/pay/stk
@@ -40,6 +41,14 @@ export const stkPush = async (req, res) => {
     // Update user’s GreenBank balance
     greenBankAccount.points += greenBankDeduction;
     await greenBankAccount.save();
+
+    //create transaction 
+    const transaction = new Transaction({
+      sender: userId,
+      receiver: userId,
+      amount: greenBankDeduction,
+      description: 'Mpesa deposit deduction to greenbank',
+    })
     // Update user’s points
     userAccount.balance += netAmountToUser;
     await userAccount.save();
@@ -94,6 +103,7 @@ export const stkPush = async (req, res) => {
     });
     
     await newDeposit.save();
+    // create Transaction 
 
 
     res.status(HttpStatusCode.Created).json({
@@ -161,10 +171,11 @@ export const callback = async (req, res) => {
       deposit.mpesaReceiptNumber = mpesaReceiptNumber; // Store receipt number for reference
       deposit.transactionDate = transaction_date;
       await deposit.save();
+      
 
       return res.status(200).json({
         message:
-          "Payment processed successfully and updated the booking status to confirmed",
+          "Payment processed successfully and update the transaction status",
       });
     } else {
       return res
@@ -181,6 +192,8 @@ export const callback = async (req, res) => {
     });
   }
 };
+
+
 
 const generateOriginatorConversationID = () => {
   return crypto.randomUUID();
@@ -267,7 +280,6 @@ export const withdrawToMpesa = async (req, res) => {
 
     await newWithdrawal.save();
     
-
         
    
 
@@ -340,7 +352,6 @@ export const b2cResultCallback = async (req, res) => {
     });
   } catch (err) {
     console.log(err);
-    console.log(stkCallBack);
     Logger.error("Withdrawal Callback Error:", err.message);
 
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

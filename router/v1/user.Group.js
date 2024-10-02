@@ -14,6 +14,8 @@ import {
   resetPassword,
   getRefferalCode,
   sendPoints,
+  movePoints,
+  getTransactionHistory
 } from "../../controllers/user.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
@@ -36,4 +38,6 @@ router.post("/otp", sendOtp);//2FA
 router.post("/otp/verify", verifyOtp);//2FA 
 router.get("/get/reffer", userAuth, getRefferalCode);
 router.post("/transact/send", userAuth, sendPoints);
+router.post("/points/move", userAuth, movePoints);
+router.get('/transaction/history',userAuth,getTransactionHistory)
 export default router;

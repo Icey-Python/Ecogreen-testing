@@ -1,8 +1,8 @@
-import Donation from "../models/donation.model.js";
 import User from "../models/user.model.js";
 import GreenBank from '../models/greenBank.model.js';
 import { StatusCodes } from "http-status-codes";
 import { Logger } from 'borgen'
+import Transaction from "../models/transaction.model.js";
 
 
 // @desc Create donations by a user
@@ -77,7 +77,12 @@ export const createDonation = async (req, res) => {
       // Add 50% to the GreenBank
       const greenBank = await GreenBank.findOne({user: userId})
       greenBank.points += halfPoints
-
+      const transaction = new Transaction({
+        sender: userId,
+        receiver: userId,
+        amount: halfPoints,
+        description: 'Donation deductions to GreenBank',
+      })
       await greenBank.save()
 
     }
@@ -130,7 +135,6 @@ export const createDonation = async (req, res) => {
     // Save the donation
     donation.pointsDonated = pointsDonated; // Store the points donated in this transaction
     const savedDonation = await donation.save();
-
     res.status(201).json({
       status: "success",
       message: "Donation created successfully.",
