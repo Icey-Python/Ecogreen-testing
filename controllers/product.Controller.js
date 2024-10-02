@@ -421,24 +421,42 @@ export const purchaseProduct = async (req, res) => {
     // Update total points spent by the user
     user.totalPointsSpent = (user.totalPointsSpent || 0) + totalCost;
 
+     // Define the maximum thresholds for each tier
+     const tierThresholds = {
+      Sprout: 6,
+      Blossom: 2,
+      Canopy: 1,
+      Ecosystem: 1,
+      Champion: 1,
+    };
+
+
     // Determine the user's tier based on total points spent
-    let newTier;
+    let currentTier;
     if (user.totalPointsSpent >= 800001) {
-      newTier = "Champion";
+      currentTier = "Champion";
     } else if (user.totalPointsSpent >= 400001) {
-      newTier = "Ecosystem";
+      currentTier = "Ecosystem";
     } else if (user.totalPointsSpent >= 150001) {
-      newTier = "Canopy";
+      currentTier = "Canopy";
     } else if (user.totalPointsSpent >= 50001) {
-      newTier = "Blossom";
+      currentTier = "Blossom";
     } else if (user.totalPointsSpent >= 1000) {
-      newTier = "Sprout";
+      currentTier = "Sprout";
     }
 
-    // Update the user's tier if changed
-    if (user.tier !== newTier) {
-      user.tier = newTier;
+    
+
+    // Update the user's tier if it has changed
+    if (user.tier !== currentTier) {
+      user.tier = currentTier;
     }
+
+    // Only increment the purchaseTierEntries if the user's current tier is below the maximum threshold
+    if (user.purchaseTierEntries[currentTier] < tierThresholds[currentTier]) {
+      user.purchaseTierEntries[currentTier] += 1;
+    }
+
 
     // Increment the product's purchaseCount (initialize it if it doesn't exist)
     purchasedProduct.purchaseCount =

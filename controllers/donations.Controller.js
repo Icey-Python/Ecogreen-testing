@@ -1,17 +1,32 @@
 import User from "../models/user.model.js";
-import GreenBank from '../models/greenBank.model.js';
+import GreenBank from "../models/greenBank.model.js";
 import { StatusCodes } from "http-status-codes";
-import { Logger } from 'borgen'
+import { Logger } from "borgen";
 import Transaction from "../models/transaction.model.js";
-
+import Donation from "../models/donation.model.js";
 
 // @desc Create donations by a user
 // @route POST /api/v1/donations
 
 export const createDonation = async (req, res) => {
   try {
-    const { pointsDonated, cause, requiredAmount,recurring } = req.body;
-    const userId = res.locals.userId; 
+    const { pointsDonated, cause, requiredAmount, recurring } = req.body;
+    const userId = res.locals.userId;
+
+    // Define the maximum thresholds for each tier
+    const tierThresholds = {
+      Bronze: 6,
+      Silver: 2,
+      Titanium: 1,
+      Gold: 1,
+      Platinum: 1,
+      Diamond: 1,
+    };
+
+    // Define minimum and maximum donation limits
+    const minDonationPoints = 1000;
+    const maxDonationPoints = 2000000;
+
 
     // Validate the request body
     if (!pointsDonated || !cause || pointsDonated <= 0) {
@@ -21,6 +36,21 @@ export const createDonation = async (req, res) => {
       });
     }
 
+    // Ensure the donation amount is between the minimum and maximum limits
+    if (pointsDonated < minDonationPoints) {
+      return res.status(400).json({
+        status: "error",
+        message: `The minimum donation amount is ${minDonationPoints} points.`,
+      });
+    }
+
+    if (pointsDonated > maxDonationPoints) {
+      return res.status(400).json({
+        status: "error",
+        message: `The maximum donation amount is ${maxDonationPoints} points.`,
+      });
+    }
+    
     // Find the user making the donation
     const user = await User.findById(userId);
     if (!user) {
@@ -40,7 +70,7 @@ export const createDonation = async (req, res) => {
 
     // Find or create a donation for the given cause
     let donation = await Donation.findOne({ cause });
-    
+
     if (!donation) {
       // Create a new donation if one doesn't exist
       donation = new Donation({
@@ -48,7 +78,7 @@ export const createDonation = async (req, res) => {
         cause,
         requiredAmount,
         amountDonated: 0,
-        recurring ,
+        recurring,
       });
     }
 
@@ -69,22 +99,17 @@ export const createDonation = async (req, res) => {
 
       // Update the donation with 50% of the extra points
       donation.amountDonated += halfPoints;
-      
-
-    
-
 
       // Add 50% to the GreenBank
-      const greenBank = await GreenBank.findOne({user: userId})
-      greenBank.points += halfPoints
+      const greenBank = await GreenBank.findOne({ user: userId });
+      greenBank.points += halfPoints;
       const transaction = new Transaction({
         sender: userId,
         receiver: userId,
         amount: halfPoints,
-        description: 'Donation deductions to GreenBank',
-      })
-      await greenBank.save()
-
+        description: "Donation deductions to GreenBank",
+      });
+      await greenBank.save();
     }
     // Deduct points from user balance
     user.balance -= pointsDonated;
@@ -103,33 +128,54 @@ export const createDonation = async (req, res) => {
       date: new Date(),
     });
 
-          // Update total points donated by the user
-      user.totalPointsDonated = (user.totalPointsDonated || 0) + pointsDonated;
+    // Update total points donated by the user
+    user.totalPointsDonated = (user.totalPointsDonated || 0) + pointsDonated;
 
-      // Determine the user's donation tier based on total points donated
-      let newDonationTier;
-      if (user.totalPointsDonated >= 750001) {
-        newDonationTier = "Diamond";
-      } else if (user.totalPointsDonated >= 500001) {
-        newDonationTier = "Platinum";
-      } else if (user.totalPointsDonated >= 150001) {
-        newDonationTier = "Gold";
-      } else if (user.totalPointsDonated >= 50001) {
-        newDonationTier = "Titanium";
-      } else if (user.totalPointsDonated >= 10001) {
-        newDonationTier = "Silver";
-      } else if (user.totalPointsDonated >= 1000) {
-        newDonationTier = "Bronze";
-      }
+    // Determine the user's donation tier based on total points donated
+    let currentDonationTier;
+    if (user.totalPointsDonated >= 750001) {
+      currentDonationTier = "Diamond";
+    } else if (user.totalPointsDonated >= 500001) {
+      currentDonationTier = "Platinum";
+    } else if (user.totalPointsDonated >= 150001) {
+      currentDonationTier = "Gold";
+    } else if (user.totalPointsDonated >= 50001) {
+      currentDonationTier = "Titanium";
+    } else if (user.totalPointsDonated >= 10001) {
+      currentDonationTier = "Silver";
+    } else if (user.totalPointsDonated >= 1000) {
+      currentDonationTier = "Bronze";
+    }
 
-      // Update the user's donation tier if it has changed
-      if (user.donationTier !== newDonationTier) {
-        user.donationTier = newDonationTier;
-      }
-      user.donations = (user.donations || 0) + 1;
+    // Initialize or update the user's donationTierEntries field if it doesn't exist
+    if (!user.donationTierEntries) {
+      user.donationTierEntries = {
+        Bronze: 0,
+        Silver: 0,
+        Titanium: 0,
+        Gold: 0,
+        Platinum: 0,
+        Diamond: 0,
+      };
+    }
+
+    
+
+    // Update the user's donation tier if it has changed
+    if (user.donationTier !== currentDonationTier) {
+      user.donationTier = currentDonationTier;
+    }
+
+    // Increment the donation count for the current tier only if the threshold has not been reached
+    if (user.donationTierEntries[currentDonationTier] < tierThresholds[currentDonationTier]) {
+      user.donationTierEntries[currentDonationTier] += 1;}
+    
+
+
+    user.donations = (user.donations || 0) + 1;
     await user.save();
 
-    donation.recurring = recurring || 'inactive'; // Set the recurring status
+    donation.recurring = recurring || "inactive"; // Set the recurring status
     donation.lastDonationDate = Date.now(); // Track the last donation date for recurring logic
 
     // Save the donation
@@ -141,53 +187,53 @@ export const createDonation = async (req, res) => {
       data: savedDonation,
     });
   } catch (error) {
-    Logger.error({ message: error.message })
+    Logger.error({ message: error.message });
 
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      status: 'error',
-      message: 'An error occurred while creating a donation',
+      status: "error",
+      message: "An error occurred while creating the donation",
       data: null,
-    })
+    });
   }
-}
-
+};
 
 // @desc Get all donations by a user
 // @route GET /api/v1/donations/user/:userId
 export const getAllUserDonations = async (req, res) => {
-    try {
-      const userId = res.locals.userId; // Authenticated user
-  
-      // Find the user
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(StatusCodes.NOT_FOUND).json({
-          status: "error",
-          message: "User not found.",
-        });
-      }
-  
-      // Find all donations made by the user, sorted by most recent
-      const donations = await Donation.find({ user: userId }).sort({ createdAt: -1 });
-  
-      res.status(StatusCodes.OK).json({
-        status: "success",
-        message: "Donations retrieved successfully.",
-        data: donations,
-      });
-    } catch (error) {
-      Logger.error({ message: error.message })
-  
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        status: 'error',
-        message: 'An error occurred while retrieving donations',
-        data: null,
-      })
-    }
-  }
+  try {
+    const userId = res.locals.userId; // Authenticated user
 
-  
- // @desc Update a donation
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message: "User not found.",
+      });
+    }
+
+    // Find all donations made by the user, sorted by most recent
+    const donations = await Donation.find({ user: userId }).sort({
+      createdAt: -1,
+    });
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Donations retrieved successfully.",
+      data: donations,
+    });
+  } catch (error) {
+    Logger.error({ message: error.message });
+
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while retrieving donations",
+      data: null,
+    });
+  }
+};
+
+// @desc Update a donation
 // @route PUT /api/v1/donation/:donationId
 export const updateDonation = async (req, res) => {
   try {
@@ -284,8 +330,7 @@ export const updateDonation = async (req, res) => {
   }
 };
 
-  
-  // @desc Delete a donation
+// @desc Delete a donation
 // @route DELETE /api/v1/donation/delete/:donationId
 export const deleteDonation = async (req, res) => {
   try {
@@ -344,8 +389,8 @@ export const deleteDonation = async (req, res) => {
     Logger.error({ message: error.message });
 
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      status: 'error',
-      message: 'An error occurred while deleting the donation',
+      status: "error",
+      message: "An error occurred while deleting the donation",
       data: null,
     });
   }
