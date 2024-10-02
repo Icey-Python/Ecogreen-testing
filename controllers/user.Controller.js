@@ -785,3 +785,43 @@ export const sendPoints = async (req, res) => {
     })
   }
 }
+
+// @ desc get transaction history 
+// @ route GET /api/v1/user/transactions/history
+export const getTransactionHistory = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login and try again',
+        data: null,
+      })
+    }
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Invalid Id',
+        data: null,
+      })
+    }
+    
+    const transactions = user.transactions
+    res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Transaction history fetched successfully',
+      data: {
+        transactions
+      },
+    })
+}
+  catch (error) {
+    Logger.error({ message: error.message })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while fetching user',
+      data: null,
+    })
+  }
+}
