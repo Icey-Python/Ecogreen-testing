@@ -691,7 +691,9 @@ export const approveConnection = async (req, res) => {
       await requestingUser.save()
     }
     // remove from notifications 
-    approvingUser.notifications = approvingUser.notifications.filter((notification) => notification.from.toString() !== approvingUserId)
+    approvingUser.notifications = approvingUser.notifications.filter((notification) => {
+      return notification.from.toString() !== approvingUserId || notification.type !== "connectionRequest";
+    });
     await approvingUser.save()
 
     res.status(StatusCodes.OK).json({
