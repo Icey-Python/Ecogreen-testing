@@ -1,4 +1,5 @@
 import { StatusCodes } from "http-status-codes";
+import crypto from "crypto";
 import User from "../models/user.model.js";
 import { Logger } from "borgen";
 import Product from "../models/product.model.js";
@@ -250,16 +251,14 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-
 //@desc Add product to cart
 //@route POST  /api/v1/product/add-to-cart
 
 export const addToCart = async (req, res) => {
   try {
     const productId = req.params.id;
-    const userId = res.locals.userId; 
-    const { quantity } = req.body; 
-   
+    const userId = res.locals.userId;
+    const { quantity } = req.body;
 
     if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -285,8 +284,6 @@ export const addToCart = async (req, res) => {
       });
     }
 
-    
-
     // Find the product
     const product = await Product.findById(productId);
     if (!productId) {
@@ -305,7 +302,9 @@ export const addToCart = async (req, res) => {
     }
 
     // Check if product already exists in the cart
-    const productInCart = user.cart.find((item) => item.product.toString() === productId);
+    const productInCart = user.cart.find(
+      (item) => item.product.toString() === productId
+    );
 
     if (productInCart) {
       // If the product is already in the cart, update the quantity
@@ -335,27 +334,14 @@ export const addToCart = async (req, res) => {
   }
 };
 
-
-
-
-// Function to generate a promo code
-const generatePromoCode = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let promoCode = '';
-  for (let i = 0; i < 8; i++) {
-    promoCode += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return promoCode;
-};
-
 //@desc Purchase product
 //@route POST  /api/v1/product/purchase
 
 export const purchaseProduct = async (req, res) => {
   try {
     const productId = req.params.id;
-    const userId = res.locals.userId; 
-    const { name, quantityPurchased } = req.body; 
+    const userId = res.locals.userId;
+    const { name, quantityPurchased } = req.body;
 
     if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -433,26 +419,17 @@ export const purchaseProduct = async (req, res) => {
     // Update total points spent by the user
     user.totalPointsSpent = (user.totalPointsSpent || 0) + totalCost;
 
+    // Increment the purchase count
+    user.purchases = (user.purchases || 0) + 1;
 
-     // Increment the purchase count
-     user.purchases = (user.purchases || 0) + 1;
-
-     // Check if the user is eligible for a promo code
-     if (user.purchases % 5 === 0) {
-       // Generate and assign a promo code
-       const promoCode = generatePromoCode(); // Function to generate a promo code
-       user.promoCode = promoCode; // Assign the promo code to the user
-     }
-
-     // Define the maximum thresholds for each tier
-     const tierThresholds = {
+    // Define the maximum thresholds for each tier
+    const tierThresholds = {
       Sprout: 6,
       Blossom: 2,
       Canopy: 1,
       Ecosystem: 1,
       Champion: 1,
     };
-
 
     // Determine the user's tier based on total points spent
     let currentTier;
@@ -468,8 +445,6 @@ export const purchaseProduct = async (req, res) => {
       currentTier = "Sprout";
     }
 
-    
-
     // Update the user's tier if it has changed
     if (user.tier !== currentTier) {
       user.tier = currentTier;
@@ -480,19 +455,17 @@ export const purchaseProduct = async (req, res) => {
       user.purchaseTierEntries[currentTier] += 1;
     }
 
-
     // Increment the product's purchaseCount (initialize it if it doesn't exist)
     purchasedProduct.purchaseCount =
       (purchasedProduct.purchaseCount || 0) + quantityPurchased;
 
-
-    // Check if the user is eligible for a promo code
+    // Check if the user has made 5 purchases to generate a promo code
     if (user.purchases % 5 === 0) {
-      // Generate and assign a promo code
-      const promoCode = generatePromoCode(); // Function to generate a promo code
-      user.promoCode = promoCode; // Assign the promo code to the user
-    }
+      // Generate a 6-character promo code using crypto
+      const promoCode = crypto.randomBytes(3).toString("hex").toUpperCase();
 
+      user.promoCode = promoCode;
+    }
 
     // create new order
     const order = new Order({
@@ -622,4 +595,3 @@ export const getMostlyPurchasedProducts = async (req, res) => {
     });
   }
 };
-
