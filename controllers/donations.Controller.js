@@ -79,6 +79,7 @@ export const createDonation = async (req, res) => {
         requiredAmount,
         amountDonated: 0,
         recurring,
+        lastDonationDate:new Date(),
       });
     }
 
@@ -175,11 +176,11 @@ export const createDonation = async (req, res) => {
     user.donations = (user.donations || 0) + 1;
     await user.save();
 
-    donation.recurring = recurring || "inactive"; // Set the recurring status
-    donation.lastDonationDate = Date.now(); // Track the last donation date for recurring logic
+    donation.recurring = recurring || "inactive"; 
+    donation.lastDonationDate = Date.now();
 
     // Save the donation
-    donation.pointsDonated = pointsDonated; // Store the points donated in this transaction
+    donation.pointsDonated = pointsDonated; 
     const savedDonation = await donation.save();
     res.status(201).json({
       status: "success",
