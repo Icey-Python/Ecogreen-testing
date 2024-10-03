@@ -296,6 +296,7 @@ export const updateUserPassword = async (req, res) => {
     })
   }
 }
+
 //@ desc Forgot Password -> reset Details
 //@ route POST /api/v1/user/reset/password/otp
 export const forgotPasswordOtp = async (req, res) => {

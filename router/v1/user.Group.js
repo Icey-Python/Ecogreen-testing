@@ -27,7 +27,7 @@ const router = Router();
 router.post("/signup", signUpUser);
 router.post("/login", loginUser);
 router.put("/update", userAuth,upload.single('image'),updateUserById);
-router.put("/password/:id", userAuth, updateUserPassword);
+router.put("/password", userAuth, updateUserPassword);
 router.delete("/delete/:id",adminAuth, deleteUserById);
 router.get("/all", adminAuth, getAllUsers);
 router.post("/connect/request/:recipientUserId", userAuth, requestConnection);
