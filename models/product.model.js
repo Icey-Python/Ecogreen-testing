@@ -50,7 +50,11 @@ const ProductSchema = new Schema(
       type: Number,
       default: 0,
     },
-    
+    subscriptionAvailable: {
+      type: Boolean,
+      required: true,
+      default: false, 
+    },
   
   },
   { timestamps: true }

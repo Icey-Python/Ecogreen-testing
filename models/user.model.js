@@ -75,6 +75,12 @@ const UserSchema = new Schema(
       type: Number,
       default: 0,
     },
+    subscriptions: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Subscription",
+      },
+    ],
     //token:string, expires: timestamp -> default time 5 mins
     resetDetails: {
       token: String,
