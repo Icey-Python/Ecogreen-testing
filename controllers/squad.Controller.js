@@ -150,7 +150,7 @@ export const requestToJoinSquad = async (req, res) => {
       Logger.error({ message: error.message })
       return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
         status: 'error',
-        message: 'An error occurred while sending reset details to your email',
+        message: 'An error occurred while sending details to your email',
         data: null,
       })
     }

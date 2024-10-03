@@ -165,6 +165,11 @@ const UserSchema = new Schema(
       Ecosystem: { type: Number, default: 0 },
       Champion: { type: Number, default: 0 },
     },
+    notifications:{
+      type: [Schema.Types.ObjectId],
+      ref: 'Notification',
+      default: [],
+    }
   },
   { timestamps: true }
 );

@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken'
 import { Config } from '../lib/config.js'
 import otp from 'otp-generator'
 import { Resend } from 'resend'
-import { otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
+import { connectionRequestEmail, otpEmail, resetEmail } from '../lib/email-templates/otpEmail.js'
 import GreenBank from '../models/greenBank.model.js'
 import { uploadImage } from '../util/imageUpload.js'
 import Donation from '../models/donation.model.js'
@@ -73,12 +73,12 @@ export const signUpUser = async (req, res) => {
       // 10 reffeals = 4000 points
       // 15 refferals =5000 points
       // 20 refferals = pizza award
-      if(refferalUser.refferal.refferedUsers.length > 20 && refferalUser.refferal.awardEarned != "Pizza!"){
+      if (refferalUser.refferal.refferedUsers.length > 20 && refferalUser.refferal.awardEarned != "Pizza!") {
         refferalUser.refferal.awardEarned = "Pizza!"
-      }else if(refferalUser.refferal.refferedUsers.length > 15 && refferalUser.refferal.totalEarned < 5000){
+      } else if (refferalUser.refferal.refferedUsers.length > 15 && refferalUser.refferal.totalEarned < 5000) {
         refferalUser.totalEarned = 5000
         refferalUser.balance += 5000
-      }else if(refferalUser.refferal.refferedUsers.length > 10 && refferalUser.refferal.totalEarned < 4000){
+      } else if (refferalUser.refferal.refferedUsers.length > 10 && refferalUser.refferal.totalEarned < 4000) {
         refferalUser.totalEarned = 4000
         refferalUser.balance += 4000
       }
@@ -575,6 +575,8 @@ export const requestConnection = async (req, res) => {
       })
     }
 
+    const requestingUser = await User.findById(requestingUserId)
+
     // Check if the request already exists or if they are already connected
     const existingRequest = recipientUser.connectionRequests.find(
       (req) => req.from.toString() === requestingUserId,
@@ -601,12 +603,39 @@ export const requestConnection = async (req, res) => {
       from: requestingUserId,
       status: 'pending',
     })
+    //send resend email 
+
+    const { data, error } = await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>',
+      to: ['ndungusamkelly5@gmail.com'],
+      subject: 'New Join Squad Request',
+      html: connectionRequestEmail(recipientUser, requestingUser.name)
+    })
+    if (error) {
+      Logger.error({ message: error.message })
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: 'error',
+        message: 'An error occurred while sending connection request details to email',
+        data: null,
+      })
+    }
+
+    // create new notification 
+    const newNotification = new Notification({
+      user: recipientUser._id,
+      description: `${requestingUser.name} sent you a connection request.`,
+      from: requestingUser._id,
+      type: "connectionRequest"
+    })
+    recipientUser.notifications.push(newNotification)
+    await recipientUser.save()
 
     await recipientUser.save()
 
     res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Connection request sent successfully.',
+      data: null
     })
   } catch (error) {
     Logger.error({ message: error.message, stack: error.stack }) // Log the actual error
@@ -661,7 +690,10 @@ export const approveConnection = async (req, res) => {
       requestingUser.connections.push(approvingUserId)
       await requestingUser.save()
     }
-
+    // remove from notifications 
+    approvingUser.notifications = approvingUser.notifications.filter((notification) => {
+      return notification.from.toString() !== approvingUserId || notification.type !== "connectionRequest";
+    });
     await approvingUser.save()
 
     res.status(StatusCodes.OK).json({
@@ -848,7 +880,7 @@ export const movePoints = async (req, res) => {
     //create transaction 
     const transaction = new Transaction({
       sender: userId,
-      receiver:userId,
+      receiver: userId,
       amount,
       description: "Move from balance to greenbank"
     })
@@ -910,7 +942,7 @@ export const getTransactionHistory = async (req, res) => {
         transactions,
       },
     })
-}
+  }
   catch (error) {
     Logger.error({ message: error.message })
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
