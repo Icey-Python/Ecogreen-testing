@@ -1,5 +1,4 @@
 import { Router } from "express";
-import Product from "../../models/product.model.js";
 import {
     createProduct,
     getProduct,
@@ -12,6 +11,8 @@ import {
     getRecommendedProducts,
     getMostlyPurchasedProducts,
     addToCart,
+    subscribeToProduct,
+    cancelSubscription,
 } from "../../controllers/product.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { userAdminAuth } from "../../middleware/userAdminAuth.js";
@@ -31,6 +32,8 @@ router.get("/flash-sales",userAuth, getFlashSales);
 router.get("/recommended/:category",userAuth, getRecommendedProducts);
 router.get("/most-purchased",userAuth, getMostlyPurchasedProducts);
 router.post("/add-to-cart/:id" , userAuth , addToCart)
+router.post("/subscribe/:id" , userAuth , subscribeToProduct)
+router.delete("/delete/subscription/:id" , userAuth , cancelSubscription)
 
 
 export default router;

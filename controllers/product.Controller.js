@@ -3,6 +3,7 @@ import crypto from "crypto";
 import User from "../models/user.model.js";
 import { Logger } from "borgen";
 import Product from "../models/product.model.js";
+import Subscription from "../models/subscription.model.js";
 import { uploadImage } from "../util/imageUpload.js";
 import Order from "../models/order.model.js";
 //@desc Create product
@@ -20,6 +21,7 @@ export const createProduct = async (req, res) => {
       flashSalePrice,
       flashSaleStart,
       flashSaleEnd,
+      subscriptionAvailable,
     } = req.body;
     if (!name) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -61,6 +63,7 @@ export const createProduct = async (req, res) => {
       flashSalePrice,
       flashSaleStart,
       flashSaleEnd,
+      subscriptionAvailable,
     });
     if (image) {
       uploadImage({
@@ -86,6 +89,7 @@ export const createProduct = async (req, res) => {
         flashSalePrice,
         flashSaleStart,
         flashSaleEnd,
+        subscriptionAvailable,
       },
     });
   } catch (error) {
@@ -592,6 +596,164 @@ export const getMostlyPurchasedProducts = async (req, res) => {
       status: "error",
       message: "An error occurred while fetching mostly purchased products",
       data: null,
+    });
+  }
+};
+
+// @desc Subscribe to a product
+// @route POST /api/v1/product/subscribe/:id
+export const subscribeToProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const userId = res.locals.userId;
+    const { frequency } = req.body;
+
+    // Check if the frequency is valid
+    const validFrequencies = ["daily", "weekly", "monthly"];
+    if (!validFrequencies.includes(frequency)) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Invalid subscription frequency. Please select weekly, bi-weekly, or monthly.",
+      });
+    }
+
+    // Validate request body
+    if (!frequency) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: "error",
+        message: "Please provide a valid subscription frequency.",
+      });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: "error",
+        message: "User not found. Please log in.",
+      });
+    }
+
+    // Find the product
+    const product = await Product.findById(productId);
+    if (!product || !product.subscriptionAvailable) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message: "Product not available for subscription.",
+      });
+    }
+
+    // **Check if the user is already subscribed to the product**
+    const existingSubscription = await Subscription.findOne({
+      userId,
+      productId,
+      status: "active",
+    });
+    if (existingSubscription) {
+      return res.status(400).json({
+        status: "error",
+        message: "You are already subscribed to this product.",
+      });
+    }
+
+    // Calculate next delivery date based on the frequency
+    let nextDeliveryDate;
+    const currentDate = new Date();
+    switch (frequency) {
+      case "daily":
+        nextDeliveryDate = new Date(
+          currentDate.setDate(currentDate.getDate() + 1)
+        );
+        break;
+      case "weekly":
+        nextDeliveryDate = new Date(
+          currentDate.setDate(currentDate.getDate() + 7)
+        );
+        break;
+      case "monthly":
+        nextDeliveryDate = new Date(
+          currentDate.setMonth(currentDate.getMonth() + 1)
+        );
+        break;
+      default:
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          status: "error",
+          message: "Invalid subscription frequency.",
+        });
+    }
+
+    // Create a new subscription
+    const subscription = new Subscription({
+      userId,
+      productId,
+      frequency,
+      nextDeliveryDate,
+    });
+
+    await subscription.save();
+
+    // Add the subscription to the user's subscriptions array
+    user.subscriptions.push(subscription._id);
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Subscribed to product successfully.",
+      data: {
+        subscription,
+        nextDeliveryDate,
+      },
+    });
+  } catch (error) {
+    Logger.error({ message: error.message });
+
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while subscribing to the product",
+      data: null,
+    });
+  }
+};
+
+// @desc Cancel product subscription
+// @route DELETE /api/v1/product/delete/subscription/:id
+export const cancelSubscription = async (req, res) => {
+  try {
+    const subscriptionId = req.params.id;
+    const userId = res.locals.userId;
+
+    // Find the subscription
+    const subscription = await Subscription.findById(subscriptionId);
+    if (!subscription || subscription.userId.toString() !== userId) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        status: "error",
+        message:
+          "Subscription not found or you do not have permission to cancel this subscription.",
+      });
+    }
+
+    // Find the user and remove the subscription from their subscriptions array
+    const user = await User.findById(userId);
+    if (user) {
+      user.subscriptions = user.subscriptions.filter(
+        (sub) => sub.toString() !== subscriptionId
+      );
+      await user.save();
+    }
+
+    // Delete the subscription from the database
+    await Subscription.findByIdAndDelete(subscriptionId);
+
+    return res.status(StatusCodes.OK).json({
+      status: "success",
+      message: "Subscription cancelled and deleted successfully.",
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: "error",
+      message: "An error occurred while canceling the subscription.",
     });
   }
 };
