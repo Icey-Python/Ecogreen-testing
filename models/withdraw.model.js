@@ -10,15 +10,7 @@ const withdrawSchema = new Schema({
     type: Number,
     required: true,
   },
-  systemAmount: {
-     type: Number, 
-     required: true, 
-    },
-  phone: {
-    type: String,
-    required: true,
-  },
-  initiatorId: {
+  recepient: {
     type: String,
     required: true,
   },
@@ -27,10 +19,6 @@ const withdrawSchema = new Schema({
     enum: ['pending', 'completed', 'failed'],
     default: 'pending',
   },
-  transactionId: String,
-  conversationId: String,
-  resultDesc: String,
-  
 },
 { timestamps: true },
 );

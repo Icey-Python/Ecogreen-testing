@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema } from 'mongoose'
 
 const UserSchema = new Schema(
   {
@@ -19,7 +19,7 @@ const UserSchema = new Schema(
     squads: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Squad",
+        ref: 'Squad',
       },
     ],
     image: {
@@ -29,7 +29,7 @@ const UserSchema = new Schema(
     saves: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Post",
+        ref: 'Post',
       },
     ],
     balance: {
@@ -43,26 +43,38 @@ const UserSchema = new Schema(
     connections: [
       {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
     connectionRequests: [
       {
-        from: { type: Schema.Types.ObjectId, ref: "User" },
+        from: { type: Schema.Types.ObjectId, ref: 'User' },
         status: {
           type: String,
-          enum: ["pending", "approved"],
-          default: "pending",
+          enum: ['pending', 'approved'],
+          default: 'pending',
         },
       },
     ],
     cart: [
       {
-        product: { type: Schema.Types.ObjectId, ref: "Product" },
+        product: { type: Schema.Types.ObjectId, ref: 'Product' },
         quantity: { type: Number, required: true },
       },
     ],
-
+    feed: {
+      excluded: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: 'Post',
+        },
+      ],
+      fyp: [
+        {
+          type: Schema.Types.ObjectId,
+        },
+      ],
+    },
     purchases: {
       type: Number,
       default: 0,
@@ -78,7 +90,7 @@ const UserSchema = new Schema(
     subscriptions: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Subscription",
+        ref: 'Subscription',
       },
     ],
     //token:string, expires: timestamp -> default time 5 mins
@@ -99,7 +111,7 @@ const UserSchema = new Schema(
     //refferal
     refferal: {
       totalEarned: { type: Number, default: 0 },
-      awardEarned: { type: String, default: "" },
+      awardEarned: { type: String, default: '' },
       code: {
         type: String,
         unique: true,
@@ -107,7 +119,7 @@ const UserSchema = new Schema(
       refferedUsers: [
         {
           type: Schema.Types.ObjectId,
-          ref: "User",
+          ref: 'User',
         },
       ],
     },
@@ -119,8 +131,8 @@ const UserSchema = new Schema(
     location: {
       type: {
         type: String, // Defines the GeoJSON type, which must be 'Point'
-        enum: ["Point"],
-        default: "Point", // Restricts the type to 'Point' only
+        enum: ['Point'],
+        default: 'Point', // Restricts the type to 'Point' only
       },
       coordinates: {
         type: [Number], // Array of numbers: [longitude, latitude
@@ -130,7 +142,7 @@ const UserSchema = new Schema(
       {
         amount: { type: Number },
         date: { type: Date, default: Date.now },
-        productId: { type: Schema.Types.ObjectId, ref: "Product" },
+        productId: { type: Schema.Types.ObjectId, ref: 'Product' },
         description: { type: String },
       },
     ],
@@ -138,7 +150,7 @@ const UserSchema = new Schema(
       {
         amount: { type: Number },
         date: { type: Date, default: Date.now },
-        productId: { type: Schema.Types.ObjectId, ref: "Donation" },
+        productId: { type: Schema.Types.ObjectId, ref: 'Donation' },
         description: { type: String },
       },
     ],
@@ -148,13 +160,13 @@ const UserSchema = new Schema(
     },
     productTier: {
       type: String,
-      enum: ["Sprout", "Blossom", "Canopy", "Ecosystem", "Champion"],
-      default: "Sprout",
+      enum: ['Sprout', 'Blossom', 'Canopy', 'Ecosystem', 'Champion'],
+      default: 'Sprout',
     },
     donationTier: {
       type: String,
-      enum: ["Bronze", "Silver", "Titanium", "Gold", "Platinum", "Diamond"],
-      default: "Bronze",
+      enum: ['Bronze', 'Silver', 'Titanium', 'Gold', 'Platinum', 'Diamond'],
+      default: 'Bronze',
     },
     donationTierEntries: {
       Bronze: { type: Number, default: 0 },
@@ -171,15 +183,15 @@ const UserSchema = new Schema(
       Ecosystem: { type: Number, default: 0 },
       Champion: { type: Number, default: 0 },
     },
-    notifications:{
+    notifications: {
       type: [Schema.Types.ObjectId],
       ref: 'Notification',
       default: [],
-    }
+    },
   },
-  { timestamps: true }
-);
+  { timestamps: true },
+)
 
-const User = model("User", UserSchema);
+const User = model('User', UserSchema)
 
-export default User;
+export default User
