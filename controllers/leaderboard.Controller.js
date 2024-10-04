@@ -2,45 +2,48 @@ import { StatusCodes } from 'http-status-codes'
 import User from '../models/user.model.js'
 import { Logger } from 'borgen'
 import Squad from '../models/squad.model.js'
+const DONATION_MULTIPLIER = 5
+const PURCHASE_MULTIPLIER = 3
+const ACTIVITY_MULTIPLIER = 2
+const BALANCE_MULTIPLIER = 1
 
 //desc Get all user donations
 //route GET /api/v1/leaderboard/users/donations
-
-export const getAllUsersDonations = async (req, res) => {
+export const getUserLeaderboard = async (req, res) => {
   try {
-    // Find all users, sort by donations in descending order
-    const users = await User.find({})
-      .select('name donations')
-      .sort({ donations: -1 })
-      .limit(10)
-
-    // Check if any users found
-    if (!users || users.length === 0) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        status: 'error',
-        message: 'No donations found',
-        data: null,
-      })
-    }
-
-    // Prepare leaderboard data
-    const leaderboard = users.map((user, index) => ({
-      rank: index + 1, // Assign rank based on position
+    //get all users
+    const users = await User.find().select('-password')
+    const leaderboard = users.map((user) => ({
       name: user.name,
-      totalDonations: user.donations,
+      userId: user.id,
+      totalScore:
+        DONATION_MULTIPLIER * user.donations +
+        PURCHASE_MULTIPLIER * user.purchases +
+        BALANCE_MULTIPLIER * user.balance,
     }))
+    // Extract the total scores into an array
+    const scores = leaderboard.map((user) => user.totalScore)
 
+    // Find the maximum score
+    const maxScore = Math.max(...scores)
+
+    const leaderboardWithPercentages = leaderboard.map((user, index) => ({
+      rank: index + 1,
+      name: user.name,
+      totalScore: user.totalScore,
+      percentage: ((user.totalScore / maxScore) * 100).toFixed(2),
+    }))
     // Return leaderboard response
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Leaderboard fetched successfully',
-      data: leaderboard,
+      data: leaderboardWithPercentages,
     })
   } catch (error) {
     Logger.error({ message: error.message })
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
-      message: 'An error occurred while fetching the leaderboard',
+      message: 'An error occurred while fetching user leaderboard',
       data: null,
     })
   }
@@ -48,42 +51,47 @@ export const getAllUsersDonations = async (req, res) => {
 
 // @desc Squad leaderboard
 // @route GET /api/v1/leaderboard/squads/donations
-export const getDonationsBySquads = async (req, res) => {
+export const getSquadLeaderBoard = async (req, res) => {
   try {
-    // Find all squads and populate their members (which are users)
-    const squads = await Squad.find().populate("members");
+    const squads = await Squad.find().populate('members')
+    const squadDonations = squads.map((squad) => {
+      const totalDonations = squad.members.reduce(
+        (acc, member) =>
+          acc +
+          DONATION_MULTIPLIER * (member.donations || 0) +
+          PURCHASE_MULTIPLIER * (member.purchases || 0) +
+          BALANCE_MULTIPLIER * (member.balance || 0),
+        0,
+      )
 
-    // Array to hold squad donation totals
-    const squadDonations = [];
+      return {
+        squadName: squad.name,
+        totalScore: totalDonations,
+      }
+    })
+    // Extract the total scores into an array
+    const scores = squadDonations.map(squad => squad.totalScore);
 
-    // Loop through each squad
-    for (const squad of squads) {
-      // Calculate the total donations for the squad by summing member donations
-      const totalDonations = squad.members.reduce((acc, member) => acc + (member.donations || 0), 0);
-
-      // Push the squad and its total donations to the array
-      squadDonations.push({
-        squadName: squad.name, // Squad name
-        squadDescription: squad.description, // Optional description if needed
-        totalDonations: totalDonations
-      });
-    }
-
-    // Sort squads by total donations in descending order
-    squadDonations.sort((a, b) => b.totalDonations - a.totalDonations);
-
-    // Return the sorted squads with total donations
+    // Find the maximum score 
+    const maxScore = Math.max(...scores);
+     const leaderboardWithPercentages = squadDonations.map((squad, index) => ({
+      rank: index + 1,
+      squadName: squad.squadName,
+       squadId: squad.id,
+      totalScore: squad.totalScore,
+      percentage: ((squad.totalScore / maxScore) * 100).toFixed(2),
+    }));
     return res.status(StatusCodes.OK).json({
-      status: "success",
-      message: "Squad donations fetched successfully",
-      data: squadDonations
-    });
+      status: 'success',
+      message: 'Squad leaderboard fetched successfully',
+      data: leaderboardWithPercentages,
+    })
   } catch (error) {
-    Logger.error({ message: error.message });
+    Logger.error({ message: error.message })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      status: "error",
-      message: "An error occurred while fetching squad donations",
-      data: null
-    });
+      status: 'error',
+      message: 'An error occurred while fetching squad leaderboard',
+      data: null,
+    })
   }
-};
+}
