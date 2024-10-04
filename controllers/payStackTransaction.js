@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import { Logger } from 'borgen'
 import { StatusCodes } from 'http-status-codes'
-import { PaystackClient } from '../app'
 import axios from 'axios'
+import Paystack from '@paystack/paystack-sdk'
 
 // Paystack Webhook
 // @route POST /api/v1/pay/webhook
