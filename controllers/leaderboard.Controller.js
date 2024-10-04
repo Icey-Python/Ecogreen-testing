@@ -2,6 +2,7 @@ import { StatusCodes } from 'http-status-codes'
 import User from '../models/user.model.js'
 import { Logger } from 'borgen'
 import Squad from '../models/squad.model.js'
+
 const DONATION_MULTIPLIER = 5
 const PURCHASE_MULTIPLIER = 3
 const ACTIVITY_MULTIPLIER = 2
