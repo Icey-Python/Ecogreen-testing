@@ -953,3 +953,42 @@ export const getTransactionHistory = async (req, res) => {
     })
   }
 }
+
+// @ desc remove post from feed 
+// @ route POST /api/v1/user/feed/remove
+export const removePostFromFeed = async (req, res) => {
+  try {
+    const userId = res.locals.userId
+    const { postId } = req.body
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login and try again',
+        data: null,
+      })
+    }
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Invalid Id',
+        data: null,
+      })
+    }
+    user.feed.excluded.push(postId)
+    await user.save()
+    return res.status(StatusCodes.OK).json({
+      status: 'success',
+      message: 'Post removed from feed successfully',
+      data: null,
+    })
+  }
+  catch (error) {
+    Logger.error({ message: error.message })
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      status: 'error',
+      message: 'An error occurred while removing post from feed',
+      data: null,
+    })
+  }
+}
