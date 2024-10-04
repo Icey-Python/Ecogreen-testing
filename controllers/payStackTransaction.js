@@ -3,7 +3,9 @@ import { Logger } from 'borgen'
 import { StatusCodes } from 'http-status-codes'
 import axios from 'axios'
 import { PaystackClient } from '../app.js'
-
+import Deposit from '../models/deposit.model.js'
+import User from '../models/user.model.js'
+import GreenBank from '../models/greenBank.model.js'
 // Paystack Webhook
 // @route POST /api/v1/pay/webhook
 export const PaystackWebhook = async (req, res) => {
@@ -16,16 +18,36 @@ export const PaystackWebhook = async (req, res) => {
       const event = req.body
       const payment_ref = event.data.reference
       const amount = event.data.amount / 100 // paystack -> in cents
+      const status = event.data.status
+      const deposit = await Deposit.findOne({ reference: payment_ref })
+      deposit.status = status == 'success' ? 'completed' : 'failed'
+      if (status == 'success') {
+        //update User balance and greenbank balance
+        const user = await User.findById(deposit.userId)
+        const totalPoints = (amount * 100) / 10 // 100 points for every 10 ksh
+
+        // Calculate 10% deduction for GreenBank
+        const greenBankDeduction = totalPoints * 0.1
+        const netAmountToUser = totalPoints - greenBankDeduction
+
+        user.balance += netAmountToUser
+        // Update user’s GreenBank balance
+        const greenBank = await GreenBank.findOne({ user: deposit.user })
+        greenBank.points += greenBankDeduction
+        await user.save()
+        await greenBank.save()
+      }
+      await deposit.save()
     }
 
-    res.sendStatus(StatusCodes.OK)
+    return res.sendStatus(StatusCodes.OK)
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    Logger.error({ message: 'Error initializing transaction ' + error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error initializing transaction',
-      data: null 
+      data: null,
     })
-    Logger.error({ message: 'Error initializing transaction ' + error })
   }
 }
 
@@ -33,6 +55,14 @@ export const PaystackWebhook = async (req, res) => {
 // @route POST /api/v1/pay/init
 export const initializePayment = async (req, res) => {
   try {
+    const userId = res.locals.userId
+    if (!userId) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Please Login and try again',
+      })
+      return
+    }
     // email -> User
     const { email, amount } = req.body
 
@@ -40,14 +70,22 @@ export const initializePayment = async (req, res) => {
       email,
       amount,
     })
+    // Create pending transaction
+    const deposit = new Deposit({
+      user: userId,
+      reference: response.data.reference,
+      amount: amount / 100,
+      status: 'pending',
+    })
 
-    res.status(StatusCodes.OK).json({
+    await deposit.save()
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transaction initialized',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error initializing transaction',
     })
@@ -71,13 +109,13 @@ export const verifyTransaction = async (req, res) => {
 
     let response = await PaystackClient.transaction.verify({ reference })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transaction verified',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error verifying transaction',
     })
@@ -101,13 +139,13 @@ export const fetchTransaction = async (req, res) => {
 
     let response = await PaystackClient.transaction.fetch({ id })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transaction fetched',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error fetching transaction',
     })
@@ -131,16 +169,22 @@ export const listTransactions = async (req, res) => {
       to: to_date,
     })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transactions fetched',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error fetching transactions',
     })
     Logger.error({ message: 'Error fetching transactions ' + error })
   }
+}
+
+// @desc update withdraw and deposit
+// @route POST api/v1/pay/deposit
+export const deposit = (req, res) => {
+  //create the record
 }

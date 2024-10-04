@@ -19,7 +19,7 @@ const transactionSchema = new Schema({
     type: String,
     required: true,
     default: "Transaction"
-  }
+  },
 })
 
 const Transaction = model('Transaction', transactionSchema)

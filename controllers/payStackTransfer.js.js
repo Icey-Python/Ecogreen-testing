@@ -17,13 +17,13 @@ export const initializeTransfer = async (req, res) => {
       reference,
     })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transfer initialized',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error initializing transfer',
     })
@@ -42,13 +42,13 @@ export const finalizeTransfer = async (req, res) => {
       otp,
     })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transfer finalized',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error finalizing transfer',
     })
@@ -63,7 +63,7 @@ export const verifyTransfer = async (req, res) => {
     const reference = req.query.ref
 
     if (!reference) {
-      res.status(StatusCodes.BAD_REQUEST).json({
+      return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Transfer reference is required',
       })
@@ -72,13 +72,13 @@ export const verifyTransfer = async (req, res) => {
 
     let response = await PaystackClient.transfer.verify({ reference })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transfer verified',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error verifying transfer',
     })
@@ -102,13 +102,13 @@ export const fetchTransfer = async (req, res) => {
 
     let response = await PaystackClient.transfer.fetch({ id })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transfer fetched',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error fetching transfer',
     })
@@ -133,13 +133,13 @@ export const listTransfers = async (req, res) => {
       status,
     })
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transfers fetched',
       data: response,
     })
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error fetching transfers',
     })

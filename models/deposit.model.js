@@ -10,11 +10,7 @@ const depositSchema = new Schema({
     type: Number,
     required: true,
   },
-  phone: {
-    type: String,
-    required: true,
-  },
-  transactionId: {
+  reference: {
     type: String,
     required: true,
   },
@@ -22,11 +18,7 @@ const depositSchema = new Schema({
     type: String,
     enum: ['pending', 'completed', 'failed'],
     default: 'pending',
-  },
-  transactionDate:{
-    type: Date,
-  }  
-  
+  }, 
 },
     { timestamps: true },
 );
