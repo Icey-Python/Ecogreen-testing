@@ -6,8 +6,14 @@ import {
   initializeTransfer,
   listTransfers,
   verifyTransfer,
-} from '../../controllers/payStackTransfer.js.js'
-import { PaystackWebhook, fetchTransaction, initializePayment, listTransactions, verifyTransaction } from '../../controllers/payStackTransaction.js'
+} from '../../controllers/payStackTransfer.js'
+import {
+  PaystackWebhook,
+  fetchTransaction,
+  initializePayment,
+  listTransactions,
+  verifyTransaction,
+} from '../../controllers/payStackTransaction.js'
 const router = Router()
 //transfer
 router.post('/transfer/init', userAuth, initializeTransfer)
@@ -16,10 +22,10 @@ router.get('/transfer/verify', userAuth, verifyTransfer)
 router.get('/transfer/get', userAuth, fetchTransfer)
 router.get('/transfers/all', userAuth, listTransfers)
 
-//transact 
-router.post('/webhook',PaystackWebhook);
-router.post("/init", userAuth, initializePayment)
-router.get("/verify", userAuth, verifyTransaction);
-router.get("/transaction/get", userAuth, fetchTransaction)
-router.get("/transactions/all", userAuth, listTransactions)
+//transact
+router.post('/webhook', PaystackWebhook)
+router.post('/init', userAuth, initializePayment)
+router.get('/verify', userAuth, verifyTransaction)
+router.get('/transaction/get', userAuth, fetchTransaction)
+router.get('/transactions/all', userAuth, listTransactions)
 export default router

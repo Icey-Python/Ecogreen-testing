@@ -1,13 +1,30 @@
 import { Logger } from 'borgen'
 import { StatusCodes } from 'http-status-codes'
 import { PaystackClient } from '../app.js'
-
+import { v4 as uuidv4 } from 'uuid'
+import Withdraw  from '../models/withdraw.model.js'
 //  Initialize a transfer
 //  @route POST /api/v1/pay/transfer/init
 export const initializeTransfer = async (req, res) => {
   try {
-    const { source, amount, recipient, reason, currency, reference } = req.body
+    const userId = res.locals.userId
 
+    if (!userId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Please Login and try again',
+      })
+    }
+    const { source, amount, recipient, reason, currency} = req.body
+    //reference a uuid 
+    const reference = uuidv4()
+
+    if (!source || !amount || !recipient || !reason || !currency) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'All fields are required',
+      })
+    }
     let response = await PaystackClient.transfer.initialize({
       source,
       amount,
@@ -16,7 +33,15 @@ export const initializeTransfer = async (req, res) => {
       currency,
       reference,
     })
-
+    // Create pending withdrawal
+    const withdrawal = new Withdraw({
+      userId: userId,
+      amount: amount / 100,
+      reference: reference,
+      recepient: userId,
+      status: 'pending',
+    })
+    await withdrawal.save()
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Transfer initialized',

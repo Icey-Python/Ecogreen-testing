@@ -6,6 +6,7 @@ import { PaystackClient } from '../app.js'
 import Deposit from '../models/deposit.model.js'
 import User from '../models/user.model.js'
 import GreenBank from '../models/greenBank.model.js'
+import Withdraw from '../models/withdraw.model.js'
 // Paystack Webhook
 // @route POST /api/v1/pay/webhook
 export const PaystackWebhook = async (req, res) => {
@@ -19,23 +20,36 @@ export const PaystackWebhook = async (req, res) => {
       const payment_ref = event.data.reference
       const amount = event.data.amount / 100 // paystack -> in cents
       const status = event.data.status
-      const deposit = await Deposit.findOne({ reference: payment_ref })
-      deposit.status = status == 'success' ? 'completed' : 'failed'
-      if (status == 'success') {
-        //update User balance and greenbank balance
-        const user = await User.findById(deposit.userId)
-        const totalPoints = (amount * 100) / 10 // 100 points for every 10 ksh
 
-        // Calculate 10% deduction for GreenBank
-        const greenBankDeduction = totalPoints * 0.1
-        const netAmountToUser = totalPoints - greenBankDeduction
+      if (event.event.split('.')[0] == 'charge') {
+        if (status == 'success') {
+          const deposit = await Deposit.findOne({ reference: payment_ref })
+          deposit.status = status == 'success' ? 'completed' : 'failed'
 
-        user.balance += netAmountToUser
-        // Update user’s GreenBank balance
-        const greenBank = await GreenBank.findOne({ user: deposit.user })
-        greenBank.points += greenBankDeduction
-        await user.save()
-        await greenBank.save()
+          //update User balance and greenbank balance
+          const user = await User.findById(deposit.userId)
+          const totalPoints = (amount * 100) / 10 // 100 points for every 10 ksh
+
+          // Calculate 10% deduction for GreenBank
+          const greenBankDeduction = totalPoints * 0.1
+          const netAmountToUser = totalPoints - greenBankDeduction
+
+          user.balance += netAmountToUser
+          // Update user’s GreenBank balance
+          const greenBank = await GreenBank.findOne({ user: deposit.user })
+          greenBank.points += greenBankDeduction
+          await user.save()
+          await greenBank.save()
+        }
+      } else if (event.event.split('.')[1] == 'transfer') {
+        if (status == 'success') {
+          const withdrawal = await Withdraw.findOne({ reference: payment_ref })
+          withdrawal.status = status == 'success' ? 'completed' : 'failed'
+          const greenBank = await GreenBank.findOne({ user: withdrawal.userId })
+          greenBank.points -= (amount * 100) / 10
+          greenBank.save()
+          await withdrawal.save()
+        }
       }
       await deposit.save()
     }

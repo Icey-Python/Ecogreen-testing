@@ -83,6 +83,9 @@ importers:
       sharp:
         specifier: ^0.33.5
         version: 0.33.5
+      uuid:
+        specifier: ^10.0.0
+        version: 10.0.0
 
 packages:
 
