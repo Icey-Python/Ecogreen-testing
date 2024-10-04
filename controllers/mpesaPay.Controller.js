@@ -49,6 +49,8 @@ export const stkPush = async (req, res) => {
       amount: greenBankDeduction,
       description: "Mpesa deposit deduction to greenbank",
     });
+
+    await transaction.save();
     // Update user’s points
     userAccount.balance += netAmountToUser;
     await userAccount.save();

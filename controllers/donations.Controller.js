@@ -110,6 +110,8 @@ export const createDonation = async (req, res) => {
         amount: halfPoints,
         description: "Donation deductions to GreenBank",
       });
+
+      
       await greenBank.save();
     }
     // Deduct points from user balance
