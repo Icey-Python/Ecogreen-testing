@@ -62,6 +62,9 @@ importers:
       paystack:
         specifier: ^2.0.1
         version: 2.0.1
+      paystack-sdk:
+        specifier: ^2.5.17
+        version: 2.5.17
       peer:
         specifier: ^1.0.2
         version: 1.0.2
@@ -1446,6 +1449,9 @@ packages:
 
   path-to-regexp@0.1.10:
     resolution: {integrity: sha512-7lf7qcQidTku0Gu3YDPc8DJ1q7OOucfa/BSsIwjuh56VU7katFvuM8hULfkwB3Fns/rsVF7PwPKVw1sl5KQS9w==}
+
+  paystack-sdk@2.5.17:
+    resolution: {integrity: sha512-ieOG2wV6tcXCwSB2hgqSAnpC+Jcu3xFINQL5MTugy5MdIuP3qqLrU9C/ajUk6TrrAVhUjcyj1lnza+DrE/1xdg==}
 
   paystack@2.0.1:
     resolution: {integrity: sha512-reVONV7ZUMln/iWeM60n0BbogF3/zFWmUrqbKYVNzEAv+p9TcWDCHfNZ2mBGXzIXhyTsNXWwf4wNcXe28btAHw==}
@@ -3403,6 +3409,12 @@ snapshots:
       minipass: 7.1.2
 
   path-to-regexp@0.1.10: {}
+
+  paystack-sdk@2.5.17:
+    dependencies:
+      axios: 1.7.7
+    transitivePeerDependencies:
+      - debug
 
   paystack@2.0.1:
     dependencies:

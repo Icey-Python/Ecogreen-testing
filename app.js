@@ -9,9 +9,11 @@ import router from './router/router.js';
 import http from 'http';
 import { ExpressPeerServer } from "peer";
 import cron from './lib/cronjob.js';
+import {Paystack} from 'paystack-sdk'
 
 const app = express();
 const server = http.createServer(app);
+export const PaystackClient = new Paystack(process.env.PAYSTACK_SECRET_KEY)
 const peerServer = ExpressPeerServer(server, {
   proxied: true,
   debug: true,

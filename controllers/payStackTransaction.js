@@ -2,14 +2,11 @@ import crypto from 'crypto'
 import { Logger } from 'borgen'
 import { StatusCodes } from 'http-status-codes'
 import axios from 'axios'
-import Paystack from '@paystack/paystack-sdk'
+import { PaystackClient } from '../app.js'
 
 // Paystack Webhook
 // @route POST /api/v1/pay/webhook
-export const PaystackWebhook = async (
-  req,
-  res,
-)=> {
+export const PaystackWebhook = async (req, res) => {
   try {
     const hash = crypto
       .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
@@ -17,18 +14,8 @@ export const PaystackWebhook = async (
       .digest('hex')
     if (hash == req.headers['x-paystack-signature']) {
       const event = req.body
-
-      // Handle central account purchase
-      // @route POST /api/v1/account/purchase
-      let response = await axios.post('http://localhost:8001/api/v1/account/purchase', {
-        payment_ref: event.data.reference,
-        payment_option: 'mpesa',
-        amount: event.data.amount / 100,
-      })
-
-      console.log(response.data)
-
-      console.log('Payment webhook :', event)
+      const payment_ref = event.data.reference
+      const amount = event.data.amount / 100 // paystack -> in cents
     }
 
     res.sendStatus(StatusCodes.OK)
@@ -36,6 +23,7 @@ export const PaystackWebhook = async (
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error initializing transaction',
+      data: null 
     })
     Logger.error({ message: 'Error initializing transaction ' + error })
   }
@@ -43,11 +31,9 @@ export const PaystackWebhook = async (
 
 // Handles initializing payment
 // @route POST /api/v1/pay/init
-export const initializePayment = async(
-  req,
-  res,
-)=> {
+export const initializePayment = async (req, res) => {
   try {
+    // email -> User
     const { email, amount } = req.body
 
     let response = await PaystackClient.transaction.initialize({
@@ -71,10 +57,7 @@ export const initializePayment = async(
 
 // Verify a transaction
 // @route GET /api/v1/pay/verify/?ref=transaction_reference
-export const verifyTransaction = async (
-  req,
-  res,
-)=> {
+export const verifyTransaction = async (req, res) => {
   try {
     const reference = req.query.ref
 
@@ -104,10 +87,7 @@ export const verifyTransaction = async (
 
 // Fetch a transaction
 // @route GET /api/v1/pay/transaction/?id=transaction_id
-export const fetchTransaction = async (
-  req,
-  res,
-) => {
+export const fetchTransaction = async (req, res) => {
   try {
     const id = req.query.id
 
@@ -137,10 +117,7 @@ export const fetchTransaction = async (
 
 // List all transactions
 // @route POST /api/v1/pay/transaction/all
-export const listTransactions = async (
-  req,
-  res,
-)=> {
+export const listTransactions = async (req, res) => {
   try {
     const { perPage, page, from, to } = req.body
 
@@ -167,4 +144,3 @@ export const listTransactions = async (
     Logger.error({ message: 'Error fetching transactions ' + error })
   }
 }
-

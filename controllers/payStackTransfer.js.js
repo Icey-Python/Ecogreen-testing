@@ -1,13 +1,10 @@
 import { Logger } from 'borgen'
 import { StatusCodes } from 'http-status-codes'
-import Paystack from '@paystack/paystack-sdk'
+import { PaystackClient } from '../app.js'
 
 //  Initialize a transfer
 //  @route POST /api/v1/pay/transfer/init
-export const initializeTransfer = async (
-  req,
-  res,
-) => {
+export const initializeTransfer = async (req, res) => {
   try {
     const { source, amount, recipient, reason, currency, reference } = req.body
 
@@ -36,10 +33,7 @@ export const initializeTransfer = async (
 
 // Finalize a transfer
 // @route POST /api/v1/pay/transfer/finalize
-export const finalizeTransfer = async (
-  req,
-  res,
-)=> {
+export const finalizeTransfer = async (req, res) => {
   try {
     const { transfer_code, otp } = req.body
 
@@ -64,10 +58,7 @@ export const finalizeTransfer = async (
 
 // Verify a transfer
 // @route GET /api/v1/pay/transfer/verify/?ref=transfer_reference
-export const verifyTransfer = async (
-  req,
-  res,
-)=> {
+export const verifyTransfer = async (req, res) => {
   try {
     const reference = req.query.ref
 
@@ -96,11 +87,8 @@ export const verifyTransfer = async (
 }
 
 // Fetch a transfer
-// @route GET /api/v1/pay/transfer/?id=transfer_id
-export const fetchTransfer = async (
-  req,
-  res,
-) => {
+// @route GET /api/v1/pay/transfer/get/?id=transfer_id
+export const fetchTransfer = async (req, res) => {
   try {
     const id = req.query.id
 
@@ -130,10 +118,7 @@ export const fetchTransfer = async (
 
 // List all transfers
 // @route POST /api/v1/pay/transfers/all
-export const listTransfers = async (
-  req,
-  res,
-) => {
+export const listTransfers = async (req, res) => {
   try {
     const { perPage, page, status, from, to } = req.body
 
@@ -161,4 +146,3 @@ export const listTransfers = async (
     Logger.error({ message: 'Error fetching transfers ' + error })
   }
 }
-
