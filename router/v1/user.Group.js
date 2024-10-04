@@ -15,7 +15,8 @@ import {
   getRefferalCode,
   sendPoints,
   movePoints,
-  getTransactionHistory
+  getTransactionHistory,
+  removePostFromFeed
 } from "../../controllers/user.Controller.js";
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
@@ -40,4 +41,5 @@ router.get("/get/reffer", userAuth, getRefferalCode);
 router.post("/transact/send", userAuth, sendPoints);
 router.post("/points/move", userAuth, movePoints);
 router.get('/transaction/history',userAuth,getTransactionHistory)
+router.post('/feed/remove',userAuth,removePostFromFeed)
 export default router;

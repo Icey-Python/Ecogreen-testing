@@ -87,7 +87,7 @@ export const createPost = async (req, res) => {
       creator: userId,
       squad: squadId,
     })
-    
+
     if (image) {
       uploadImage({
         req,
@@ -101,7 +101,6 @@ export const createPost = async (req, res) => {
     if (category) post.category = category
     if (tags) post.tags = tags
     await post.save()
-
 
     return res.status(StatusCodes.CREATED).json({
       status: 'success',
@@ -133,7 +132,16 @@ export const getAllPosts = async (req, res) => {
         data: null,
       })
     }
-    const posts = await Post.find()
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Invalid Id',
+        data: null,
+      })
+    }
+    const excluded = user.feed.excluded
+    const posts = await Post.find({ _id: { $nin: excluded } })
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Posts fetched successfully',

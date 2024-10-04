@@ -71,7 +71,7 @@ const UserSchema = new Schema(
       ],
       fyp: [
         {
-          type: Schema.Types.ObjectId,
+          type: String, // post categories
         },
       ],
     },
