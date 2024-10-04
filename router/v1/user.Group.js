@@ -29,7 +29,7 @@ router.post("/signup", signUpUser);
 router.post("/login", loginUser);
 router.put("/update", userAuth,upload.single('image'),updateUserById);
 router.put("/password", userAuth, updateUserPassword);
-router.delete("/delete/:id",adminAuth, deleteUserById);
+router.delete("/delete",userAuth, deleteUserById);
 router.get("/all", adminAuth, getAllUsers);
 router.post("/connect/request/:recipientUserId", userAuth, requestConnection);
 router.put("/connect/approve/:requestingUserId", userAuth, approveConnection);

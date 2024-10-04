@@ -508,10 +508,10 @@ export const resetPassword = async (req, res) => {
 }
 
 //@desc Delete user's own account by ID
-//@route DELETE /api/v1/users/:id
+//@route DELETE /api/v1/users/
 export const deleteUserById = async (req, res) => {
   try {
-    const userId = req.params.id
+    const userId = res.locals.userId
 
     // Fetch the user to delete
     const user = await User.findByIdAndDelete(userId)
