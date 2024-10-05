@@ -13,6 +13,7 @@ import Donation from '../models/donation.model.js'
 import Deposit from '../models/deposit.model.js'
 import Withdraw from '../models/withdraw.model.js'
 import Transaction from '../models/transaction.model.js'
+import Post from '../models/post.model.js'
 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
@@ -508,7 +509,7 @@ export const resetPassword = async (req, res) => {
 }
 
 //@desc Delete user's own account by ID
-//@route DELETE /api/v1/users/
+//@route DELETE /api/v1/users/:id
 export const deleteUserById = async (req, res) => {
   try {
     const userId = res.locals.userId
@@ -954,7 +955,7 @@ export const getTransactionHistory = async (req, res) => {
   }
 }
 
-// @ desc remove post from feed 
+// @ desc remove post from feed
 // @ route POST /api/v1/user/feed/remove
 export const removePostFromFeed = async (req, res) => {
   try {
@@ -967,6 +968,14 @@ export const removePostFromFeed = async (req, res) => {
         data: null,
       })
     }
+    if (!postId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Please provide post id',
+        data: null,
+      })
+    }
+
     const user = await User.findById(userId)
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -975,6 +984,16 @@ export const removePostFromFeed = async (req, res) => {
         data: null,
       })
     }
+
+    const post = await Post.findById(postId)
+    if (!post) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid post Id',
+        data: null,
+      })
+    }
+
     user.feed.excluded.push(postId)
     await user.save()
     return res.status(StatusCodes.OK).json({
@@ -982,12 +1001,11 @@ export const removePostFromFeed = async (req, res) => {
       message: 'Post removed from feed successfully',
       data: null,
     })
-  }
-  catch (error) {
-    Logger.error({ message: error.message })
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
-      message: 'An error occurred while removing post from feed',
+      message: 'An error occured while trying to remove post from feed',
       data: null,
     })
   }
