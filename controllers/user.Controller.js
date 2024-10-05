@@ -13,7 +13,8 @@ import Donation from '../models/donation.model.js'
 import Deposit from '../models/deposit.model.js'
 import Withdraw from '../models/withdraw.model.js'
 import Transaction from '../models/transaction.model.js'
-
+import Post from '../models/post.model.js'
+import Notification from '../models/notification.model.js' 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
 // @route POST /api/v1/user/signup
@@ -101,6 +102,7 @@ export const signUpUser = async (req, res) => {
       message: 'User sign up successful',
       data: {
         name: data.name,
+        id: data.id,
         email: data.email,
         token,
       },
@@ -511,7 +513,7 @@ export const resetPassword = async (req, res) => {
 //@route DELETE /api/v1/users/:id
 export const deleteUserById = async (req, res) => {
   try {
-    const userId = req.params.id
+    const userId = res.locals.userId
 
     // Fetch the user to delete
     const user = await User.findByIdAndDelete(userId)
@@ -577,7 +579,6 @@ export const requestConnection = async (req, res) => {
     }
 
     const requestingUser = await User.findById(requestingUserId)
-
     // Check if the request already exists or if they are already connected
     const existingRequest = recipientUser.connectionRequests.find(
       (req) => req.from.toString() === requestingUserId,
@@ -610,7 +611,7 @@ export const requestConnection = async (req, res) => {
       from: 'Acme <onboarding@resend.dev>',
       to: ['ndungusamkelly5@gmail.com'],
       subject: 'New Join Squad Request',
-      html: connectionRequestEmail(recipientUser, requestingUser.name)
+      html: connectionRequestEmail(recipientUser.name, requestingUser.name)
     })
     if (error) {
       Logger.error({ message: error.message })
@@ -628,6 +629,7 @@ export const requestConnection = async (req, res) => {
       from: requestingUser._id,
       type: "connectionRequest"
     })
+    await newNotification.save()
     recipientUser.notifications.push(newNotification)
     await recipientUser.save()
 
@@ -639,7 +641,7 @@ export const requestConnection = async (req, res) => {
       data: null
     })
   } catch (error) {
-    Logger.error({ message: error.message, stack: error.stack }) // Log the actual error
+    Logger.error({ message: error.message}) // Log the actual error
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while sending the connection request.',
@@ -954,7 +956,7 @@ export const getTransactionHistory = async (req, res) => {
   }
 }
 
-// @ desc remove post from feed 
+// @ desc remove post from feed
 // @ route POST /api/v1/user/feed/remove
 export const removePostFromFeed = async (req, res) => {
   try {
@@ -967,6 +969,14 @@ export const removePostFromFeed = async (req, res) => {
         data: null,
       })
     }
+    if (!postId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Please provide post id',
+        data: null,
+      })
+    }
+
     const user = await User.findById(userId)
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
@@ -975,6 +985,16 @@ export const removePostFromFeed = async (req, res) => {
         data: null,
       })
     }
+
+    const post = await Post.findById(postId)
+    if (!post) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'Invalid post Id',
+        data: null,
+      })
+    }
+
     user.feed.excluded.push(postId)
     await user.save()
     return res.status(StatusCodes.OK).json({
@@ -982,12 +1002,11 @@ export const removePostFromFeed = async (req, res) => {
       message: 'Post removed from feed successfully',
       data: null,
     })
-  }
-  catch (error) {
-    Logger.error({ message: error.message })
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+  } catch (error) {
+    Logger.error({ message: error })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
-      message: 'An error occurred while removing post from feed',
+      message: 'An error occured while trying to remove post from feed',
       data: null,
     })
   }

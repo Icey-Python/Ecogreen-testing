@@ -25,7 +25,7 @@ export const initializeTransfer = async (req, res) => {
         message: 'All fields are required',
       })
     }
-    let response = await PaystackClient.transfer.initialize({
+    let response = await PaystackClient.transfer.initiate({
       source,
       amount,
       recipient,
@@ -36,7 +36,7 @@ export const initializeTransfer = async (req, res) => {
     // Create pending withdrawal
     const withdrawal = new Withdraw({
       userId: userId,
-      amount: amount / 100,
+      amount: (amount / 100)*(100/10),
       reference: reference,
       recepient: userId,
       status: 'pending',
@@ -48,11 +48,11 @@ export const initializeTransfer = async (req, res) => {
       data: response,
     })
   } catch (error) {
+    Logger.error({ message: 'Error initializing transfer ' + error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error initializing transfer',
     })
-    Logger.error({ message: 'Error initializing transfer ' + error })
   }
 }
 

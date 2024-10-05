@@ -1,7 +1,6 @@
 import crypto from 'crypto'
 import { Logger } from 'borgen'
 import { StatusCodes } from 'http-status-codes'
-import axios from 'axios'
 import { PaystackClient } from '../app.js'
 import Deposit from '../models/deposit.model.js'
 import User from '../models/user.model.js'
@@ -24,8 +23,8 @@ export const PaystackWebhook = async (req, res) => {
       if (event.event.split('.')[0] == 'charge') {
         if (status == 'success') {
           const deposit = await Deposit.findOne({ reference: payment_ref })
-          deposit.status = status == 'success' ? 'completed' : 'failed'
-
+          deposit.status = 'completed'
+          
           //update User balance and greenbank balance
           const user = await User.findById(deposit.userId)
           const totalPoints = (amount * 100) / 10 // 100 points for every 10 ksh
@@ -35,23 +34,30 @@ export const PaystackWebhook = async (req, res) => {
           const netAmountToUser = totalPoints - greenBankDeduction
 
           user.balance += netAmountToUser
+
           // Update user’s GreenBank balance
-          const greenBank = await GreenBank.findOne({ user: deposit.user })
+          const greenBank = await GreenBank.findOne({ user: deposit.userId })
           greenBank.points += greenBankDeduction
           await user.save()
           await greenBank.save()
+          await deposit.save()
+        }
+
+        if (status == 'failed') {
+          const deposit = await Deposit.findOne({ reference: payment_ref })
+          deposit.status = 'failed'
+          await deposit.save()
         }
       } else if (event.event.split('.')[1] == 'transfer') {
         if (status == 'success') {
           const withdrawal = await Withdraw.findOne({ reference: payment_ref })
           withdrawal.status = status == 'success' ? 'completed' : 'failed'
           const greenBank = await GreenBank.findOne({ user: withdrawal.userId })
-          greenBank.points -= (amount * 100) / 10
+          greenBank.points -= (amount / 100) *(100/10)
           greenBank.save()
           await withdrawal.save()
         }
       }
-      await deposit.save()
     }
 
     return res.sendStatus(StatusCodes.OK)
@@ -70,23 +76,28 @@ export const PaystackWebhook = async (req, res) => {
 export const initializePayment = async (req, res) => {
   try {
     const userId = res.locals.userId
-    if (!userId) {
-      res.status(StatusCodes.BAD_REQUEST).json({
+    if(!userId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
         message: 'Please Login and try again',
       })
-      return
     }
     // email -> User
     const { email, amount } = req.body
-
+    if (!email || !amount) {
+     return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'All fields are required',
+      })
+    }
     let response = await PaystackClient.transaction.initialize({
       email,
       amount,
     })
+
     // Create pending transaction
     const deposit = new Deposit({
-      user: userId,
+      userId,
       reference: response.data.reference,
       amount: amount / 100,
       status: 'pending',
@@ -99,6 +110,7 @@ export const initializePayment = async (req, res) => {
       data: response,
     })
   } catch (error) {
+    Logger.error({ message: 'Error initializing transaction: ' + error })
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'Error initializing transaction',
@@ -197,8 +209,3 @@ export const listTransactions = async (req, res) => {
   }
 }
 
-// @desc update withdraw and deposit
-// @route POST api/v1/pay/deposit
-export const deposit = (req, res) => {
-  //create the record
-}
