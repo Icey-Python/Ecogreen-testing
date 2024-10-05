@@ -129,9 +129,10 @@ export const getProduct = async (req, res) => {
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find();
+    
     return res.status(StatusCodes.OK).json({
       status: "success",
-      message: "Product fetched successfully",
+      message: "Products fetched successfully",
       data: products,
     });
   } catch (error) {
@@ -256,7 +257,7 @@ export const deleteProduct = async (req, res) => {
 };
 
 //@desc Add product to cart
-//@route POST  /api/v1/product/add-to-cart
+//@route POST  /api/v1/product/add-to-cart/:id
 
 export const addToCart = async (req, res) => {
   try {
@@ -339,7 +340,7 @@ export const addToCart = async (req, res) => {
 };
 
 //@desc Purchase product
-//@route POST  /api/v1/product/purchase
+//@route POST  /api/v1/product/purchase/:id
 
 export const purchaseProduct = async (req, res) => {
   try {
@@ -511,6 +512,7 @@ export const purchaseProduct = async (req, res) => {
 // @route GET /api/v1/product/latest
 export const getLatestProducts = async (req, res) => {
   try {
+   
     const products = await Product.find().sort({ createdAt: -1 }).limit(10); // Fetch the 10 latest products
     res.status(StatusCodes.OK).json({
       status: "success",
@@ -530,12 +532,13 @@ export const getLatestProducts = async (req, res) => {
 // @route GET /api/v1/product/flash-sales
 export const getFlashSales = async (req, res) => {
   try {
+    
     const currentDateTime = new Date();
     const products = await Product.find({
       flashSaleStart: { $lte: currentDateTime },
       flashSaleEnd: { $gte: currentDateTime },
     });
-
+ console.log(products)
     res.status(StatusCodes.OK).json({
       status: "success",
       message: "Flash sale products fetched successfully.",
