@@ -21,6 +21,7 @@ import {
 import { userAuth } from "../../middleware/userAuth.js";
 import { adminAuth } from "../../middleware/adminAuth.js";
 import multer from 'multer'
+import { userAdminAuth } from "../../middleware/userAdminAuth.js";
 
 const upload = multer();
 const router = Router();
@@ -30,7 +31,7 @@ router.post("/login", loginUser);
 router.put("/update", userAuth,upload.single('image'),updateUserById);
 router.put("/password", userAuth, updateUserPassword);
 router.delete("/delete",userAuth, deleteUserById);
-router.get("/all", adminAuth, getAllUsers);
+router.get("/all", userAdminAuth, getAllUsers);
 router.post("/connect/request/:recipientUserId", userAuth, requestConnection);
 router.put("/connect/approve/:requestingUserId", userAuth, approveConnection);
 router.put("/reset/password/otp", forgotPasswordOtp);

@@ -14,7 +14,7 @@ import Deposit from '../models/deposit.model.js'
 import Withdraw from '../models/withdraw.model.js'
 import Transaction from '../models/transaction.model.js'
 import Post from '../models/post.model.js'
-
+import Notification from '../models/notification.model.js' 
 //@init Resend
 const resend = new Resend(Config.RS_MAIL_KEY)
 // @route POST /api/v1/user/signup
@@ -102,6 +102,7 @@ export const signUpUser = async (req, res) => {
       message: 'User sign up successful',
       data: {
         name: data.name,
+        id: data.id,
         email: data.email,
         token,
       },
@@ -578,7 +579,6 @@ export const requestConnection = async (req, res) => {
     }
 
     const requestingUser = await User.findById(requestingUserId)
-
     // Check if the request already exists or if they are already connected
     const existingRequest = recipientUser.connectionRequests.find(
       (req) => req.from.toString() === requestingUserId,
@@ -611,7 +611,7 @@ export const requestConnection = async (req, res) => {
       from: 'Acme <onboarding@resend.dev>',
       to: ['ndungusamkelly5@gmail.com'],
       subject: 'New Join Squad Request',
-      html: connectionRequestEmail(recipientUser, requestingUser.name)
+      html: connectionRequestEmail(recipientUser.name, requestingUser.name)
     })
     if (error) {
       Logger.error({ message: error.message })
@@ -629,6 +629,7 @@ export const requestConnection = async (req, res) => {
       from: requestingUser._id,
       type: "connectionRequest"
     })
+    await newNotification.save()
     recipientUser.notifications.push(newNotification)
     await recipientUser.save()
 
@@ -640,7 +641,7 @@ export const requestConnection = async (req, res) => {
       data: null
     })
   } catch (error) {
-    Logger.error({ message: error.message, stack: error.stack }) // Log the actual error
+    Logger.error({ message: error.message}) // Log the actual error
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       status: 'error',
       message: 'An error occurred while sending the connection request.',
