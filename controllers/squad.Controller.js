@@ -250,8 +250,16 @@ export const leaveSquad = async (req, res) => {
 // @route GET /api/v1/squad/all
 export const getAllSquads = async (req, res) => {
   try {
-    const squads = await Squad.find().populate('members')
+    const userId = res.locals.userId
+    if (!userId) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'Please login and try again',
+        data: null,
+      })
+    }
 
+    const squads = await Squad.find().populate('members')
     return res.status(StatusCodes.OK).json({
       status: 'success',
       message: 'Fetched all squads successful',
@@ -417,13 +425,20 @@ export const addMember = async (req, res) => {
       moderatorId: userId,
       squadId: squadId,
     })
-    if (userId != squad.admin || moderator.role != 'mod-members' || !squad.moderators.includes(userId)) {
+    if (userId != squad.admin || !squad.moderators.includes(userId)) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perfom this action',
         data: null,
       })
     }
+        if (userId != squad.admin && moderator.role != 'mod-members') {
+          return res.status(StatusCodes.UNAUTHORIZED).json({
+            status: 'error',
+            message: 'You are not allowed to perfom this action',
+            data: null,
+          })
+        }
 
     if (squad.members.includes(requestedMemberId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -458,12 +473,13 @@ export const addMember = async (req, res) => {
 export const approveMember = async (req, res) => {
   try {
     const userId = res.locals.userId
+    console.log(userId)
     const requestedMemberId = req.params.id
     const { squadId } = req.body
     if (!userId) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
-        message: 'You are not allowed to perfom this action',
+        message: 'Please login to perfom this action',
         data: null,
       })
     }
@@ -501,7 +517,14 @@ export const approveMember = async (req, res) => {
       })
     }
     const moderator = await Moderator.find({ squadId: squadId, moderatorId: userId })
-    if (userId != squad.admin || !squad.moderators.includes(userId) || moderator.role != "mod-members") {
+    if (userId != squad.admin || !squad.moderators.includes(userId)) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perform this action, only squad admin can perform this action',
+        data: null,
+      })
+    }
+    if(userId != squad.admin && moderator.role != 'mod-members'){
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
         message: 'You are not allowed to perform this action',
@@ -589,16 +612,23 @@ export const removeMember = async (req, res) => {
     if (!squad) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
-        message: 'You are not allowed to perfom this action',
+        message: 'Invalid Squad Id',
         data: null,
       })
     }
 
     const moderator = await Moderator.find({ squadId: squadId, moderatorId: userId })
-    if (userId != squad.admin || !squad.moderators.includes(userId) || moderator.role != "mod-members") {
+    if (userId != squad.admin || !squad.moderators.includes(userId)) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
         status: 'error',
-        message: 'You are not allowed to perform this action',
+        message: 'You are not allowed to perform this action, only squad admin can perform this action',
+        data: null,
+      })
+    }
+    if(userId != squad.admin && moderator.role != 'mod-members'){
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        status: 'error',
+        message: 'You are not allowed to perform this action, only squad admin can and member moderators perform this action',
         data: null,
       })
     }
