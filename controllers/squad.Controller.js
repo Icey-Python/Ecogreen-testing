@@ -131,12 +131,26 @@ export const requestToJoinSquad = async (req, res) => {
         data: null,
       })
     }
-
-    console.log(squad)
+    if (squad.requestedMembers.includes(userId)) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'You have already requested to join this squad, please wait for approval',
+        data: null,
+      })
+    }
     squad.requestedMembers.push(user._id)
-    await squad.save()
-    // send email with resend 
 
+    //populate the requested user names 
+    await squad.save()
+    let requestedMemberNames = await Squad.findById(squadId).populate(
+      'requestedMembers',
+      'name'
+    )
+    requestedMemberNames = requestedMemberNames.requestedMembers.map(
+      (member) => member.name
+    )
+    console.log(requestedMemberNames)
+    // send email with resend 
     //@init Resend
     const resend = new Resend(Config.RS_MAIL_KEY)
 
@@ -144,7 +158,7 @@ export const requestToJoinSquad = async (req, res) => {
       from: 'Acme <onboarding@resend.dev>',
       to: ['ndungusamkelly5@gmail.com'],
       subject: 'New Join Squad Request',
-      html: notificationEmail(squad.name, squad.requestedMembers),
+      html: notificationEmail(squad.name, requestedMemberNames),
     })
     if (error) {
       Logger.error({ message: error.message })
