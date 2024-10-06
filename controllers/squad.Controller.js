@@ -132,7 +132,7 @@ export const requestToJoinSquad = async (req, res) => {
       })
     }
 
-
+    console.log(squad)
     squad.requestedMembers.push(user._id)
     await squad.save()
     // send email with resend 
