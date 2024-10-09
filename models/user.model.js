@@ -158,16 +158,16 @@ const UserSchema = new Schema(
       type: Number,
       default: 0,
     },
-    productTier: {
-      type: String,
-      enum: ['Sprout', 'Blossom', 'Canopy', 'Ecosystem', 'Champion'],
-      default: 'Sprout',
-    },
-    donationTier: {
-      type: String,
-      enum: ['Bronze', 'Silver', 'Titanium', 'Gold', 'Platinum', 'Diamond'],
-      default: 'Bronze',
-    },
+    // TODO: Auto calculate for purchases & donations
+    // productTier: {
+    //   type: String,
+    //   enum: ['Sprout', 'Blossom', 'Canopy', 'Ecosystem', 'Champion'],
+    //   default: 'Sprout',
+    // },
+    // donationTier: {
+    //   type: String,
+    //   enum: ['Bronze', 'Silver', 'Titanium', 'Gold', 'Platinum', 'Diamond'],
+    // },
     donationTierEntries: {
       Bronze: { type: Number, default: 0 },
       Silver: { type: Number, default: 0 },
