@@ -146,6 +146,10 @@ const UserSchema = new Schema(
         description: { type: String },
       },
     ],
+    leaderboardScore: {
+      type: Number,
+      default: 0,
+    },
     donationCredits: [
       {
         amount: { type: Number },
