@@ -84,22 +84,20 @@ export const createDonation = async (req, res) => {
     }
 
     // Calculate extra points if donation exceeds required amount
-    const remainingAmount = donation.requiredAmount - donation.amountDonated;
+    const remainingAmount = pointsDonated - donation.requiredAmount;
     let extraPoints = 0;
+    
 
-    if (pointsDonated > remainingAmount) {
-      extraPoints = pointsDonated - remainingAmount;
-      donation.amountDonated += remainingAmount;
-    } else {
+    if (pointsDonated < donation.requiredAmount) {
+     
       donation.amountDonated += pointsDonated;
-    }
+    } else {
+      extraPoints = pointsDonated - donation.requiredAmount;
 
-    // Create GreenBank entry for extra points
-    if (extraPoints > 0) {
-      const halfPoints = extraPoints / 2;
+      const halfPoints = extraPoints /2
 
       // Update the donation with 50% of the extra points
-      donation.amountDonated += halfPoints;
+      donation.amountDonated += halfPoints + remainingAmount;
 
       // Add 50% to the GreenBank
       const greenBank = await GreenBank.findOne({ user: userId });
@@ -114,6 +112,8 @@ export const createDonation = async (req, res) => {
       
       await greenBank.save();
     }
+
+  
     // Deduct points from user balance
     user.balance -= pointsDonated;
 
@@ -136,49 +136,27 @@ export const createDonation = async (req, res) => {
 
     // Determine the user's donation tier based on total points donated
     let currentDonationTier;
-    if (user.totalPointsDonated >= 750001) {
+    if (pointsDonated >= 750001) {
       currentDonationTier = "Diamond";
-    } else if (user.totalPointsDonated >= 500001) {
+    } else if (pointsDonated >= 500001) {
       currentDonationTier = "Platinum";
-    } else if (user.totalPointsDonated >= 150001) {
+    } else if (pointsDonated >= 150001) {
       currentDonationTier = "Gold";
-    } else if (user.totalPointsDonated >= 50001) {
+    } else if (pointsDonated >= 50001) {
       currentDonationTier = "Titanium";
-    } else if (user.totalPointsDonated >= 10001) {
+    } else if (pointsDonated >= 10001) {
       currentDonationTier = "Silver";
-    } else if (user.totalPointsDonated >= 1000) {
+    } else if (pointsDonated >= 1000) {
       currentDonationTier = "Bronze";
     }
 
-    // Initialize or update the user's donationTierEntries field if it doesn't exist
-    if (!user.donationTierEntries) {
-      user.donationTierEntries = {
-        Bronze: 0,
-        Silver: 0,
-        Titanium: 0,
-        Gold: 0,
-        Platinum: 0,
-        Diamond: 0,
-      };
-    }
+    // Increment the donation count for the current tier
+     user.donationTierEntries[currentDonationTier] += 1;
 
-    
-
-    // Update the user's donation tier if it has changed
-    if (user.donationTier !== currentDonationTier) {
-      user.donationTier = currentDonationTier;
-    }
-
-    // Increment the donation count for the current tier only if the threshold has not been reached
-    if (user.donationTierEntries[currentDonationTier] < tierThresholds[currentDonationTier]) {
-      user.donationTierEntries[currentDonationTier] += 1;}
-    
-
-
-    user.donations = (user.donations || 0) + 1;
+    user.donations = user.donations  + 1;
     await user.save();
 
-    donation.recurring = recurring || "inactive"; 
+    if(recurring) donation.recurring = recurring; 
     donation.lastDonationDate = Date.now();
 
     // Save the donation

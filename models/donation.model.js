@@ -24,9 +24,8 @@ const donationSchema = new Schema(
       required: true,
     },
     recurring: {
-      type: String,
-      enum: ['active', 'inactive'],
-      default: 'inactive',
+      type: Boolean,
+      default: false,
     },
     lastDonationDate: { 
       type: Date, 

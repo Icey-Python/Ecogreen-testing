@@ -450,15 +450,12 @@ export const purchaseProduct = async (req, res) => {
       currentTier = "Sprout";
     }
 
-    // Update the user's tier if it has changed
-    if (user.tier !== currentTier) {
-      user.tier = currentTier;
-    }
+    
 
-    // Only increment the purchaseTierEntries if the user's current tier is below the maximum threshold
-    if (user.purchaseTierEntries[currentTier] < tierThresholds[currentTier]) {
+    //  Increment the purchaseTierEntries 
+    
       user.purchaseTierEntries[currentTier] += 1;
-    }
+  
 
     // Increment the product's purchaseCount (initialize it if it doesn't exist)
     purchasedProduct.purchaseCount =
