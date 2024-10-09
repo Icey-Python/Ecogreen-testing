@@ -33,7 +33,16 @@ export const signUpUser = async (req, res) => {
     if (user) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         status: 'error',
-        message: 'User already exists',
+        message: 'A User with this email already exists',
+        data: null,
+      })
+    }
+    //add phone check 
+    const phone = await User.findOne({ contact })
+    if (phone) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: 'error',
+        message: 'A User with this phone number already exists',
         data: null,
       })
     }

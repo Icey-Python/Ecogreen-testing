@@ -64,7 +64,7 @@ export const createDonation = async (req, res) => {
     if (user.balance < pointsDonated) {
       return res.status(400).json({
         status: "error",
-        message: "Insufficient coins balance to make the donation.",
+        message: `Insufficient coins balance to make the donation.You need ${pointsDonated - user.balance} coins.`,
       });
     }
 
