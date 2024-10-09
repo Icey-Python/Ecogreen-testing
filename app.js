@@ -10,6 +10,7 @@ import http from 'http';
 import { ExpressPeerServer } from "peer";
 import cron from './lib/cronjob.js';
 import {Paystack} from 'paystack-sdk'
+import { leaderboardCron } from './lib/leaderboardCron.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -20,7 +21,6 @@ const peerServer = ExpressPeerServer(server, {
   path: "/myapp",
   ssl: {},
 });
-
 app.use(peerServer);
 // Middlewares
 app.use(Borgen({}));
